@@ -13,9 +13,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 import sequelize from "./models/database.js";
-import { getDirectories } from "./utils/functions.js";
+import { getDirectories, getFiles } from "./utils/functions.js";
 
 const ROUTES_DIR = path.join(__dirname, "routes");
+const MODELS_DIR = path.join(__dirname, "models");
 
 class MyClient extends EventEmitter {
   constructor(options = {}) {
@@ -52,12 +53,11 @@ class MyClient extends EventEmitter {
 
     this.directories = [];
 
-    this.connect();
+    this.connectDatabase();
     this.start();
   }
 
   async start() {
-
     await this.loadRoutes();
 
     return new Promise((resolve, reject) => {
@@ -87,8 +87,25 @@ class MyClient extends EventEmitter {
     });
   }
 
-  async connect() {
+  async loadModels() {
+    const files = await getFiles(MODELS_DIR);
+
+    console.log(files);
+
+    // seulement si ça commence par une majuscule
+    const models = files
+      .filter((dir) => /^[A-Z]/.test(dir))
+      .map((fileName) => {
+        console.log(`Loading model ${fileName}`);
+        return import(`./models/${fileName}`);
+      });
+
+    return Promise.all(models);
+  }
+
+  async connectDatabase() {
     try {
+      await this.loadModels();
       await this.sequelize.sync(); // Crée la base de données si elle n'existe pas
       console.log("Database connected and synchronized.");
     } catch (err) {
@@ -104,13 +121,13 @@ class MyClient extends EventEmitter {
 
       for (const dir of directories) {
         if (!fs.existsSync(path.join(ROUTES_DIR, dir, `${dir}Routes.js`))) {
-            console.log(`No route file found for ${dir}`);
-            continue;
+          console.log(`No route file found for ${dir}`);
+          continue;
         }
         const route = await import(`./routes/${dir}/${dir}Routes.js`);
 
         console.log(`Registering route ${dir}`);
-        
+
         this.app.register(route.default);
       }
 
