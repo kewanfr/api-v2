@@ -10,10 +10,12 @@ export const authLoginHandler = async (req, reply) => {
 
   const { login, password } = req.body;
 
+  // include password
   const user = await User.findOne({
     where: {
       [Op.or]: [{ username: login }, { email: login }],
     },
+    attributes: { include: ["password"] },
   });
 
   if (!user) {
@@ -79,4 +81,25 @@ export const authRegisterHandler = async (req, reply) => {
   });
 
   return user;
+};
+
+export const getUserHandler = async (req, reply) => {
+  const { user } = req;
+  if (!user) {
+    return reply.code(404).send({ message: "User not found" });
+  }
+
+  const dbUser = await User.findOne({
+    where: {
+      [Op.and]: [{ id: user.id }, { username: user.username }],
+    },
+  });
+
+  if (!dbUser) {
+    return reply.code(404).send({ message: "User not found" });
+  }
+
+  delete dbUser.dataValues.password;
+
+  return dbUser.dataValues;
 };
