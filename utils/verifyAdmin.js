@@ -24,16 +24,16 @@ const verifyAdmin = (req, res, done) => {
     });
 
     if (!dbUser) {
-      done(new Error("Unauthorized"));
+      return done(new Error("Unauthorized"));
     }
 
     if (dbUser.role !== "admin") {
-      done(new Error("Unauthorized"));
+      return done(new Error("Unauthorized"));
     }
 
     req.user = decoded;
 
-    done(decoded);
+    // done();
   });
   done();
 };
