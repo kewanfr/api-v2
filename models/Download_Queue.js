@@ -1,8 +1,11 @@
 import Sequelize from 'sequelize';
 import sequelize from './database.js';
+import User from './User.js';
+import Track from './Track.js';
 
-const Track = sequelize.define(
-  "tracks",
+
+const Download_Queue = sequelize.define(
+  "download_queue",
   {
     id: {
       type: Sequelize.INTEGER,
@@ -10,10 +13,7 @@ const Track = sequelize.define(
       allowNull: false,
       primaryKey: true,
     },
-    // Can be spotify or youtube
-    // origin: {
-      
-    // }
+
     name: {
       type: Sequelize.STRING,
       allowNull: false,
@@ -55,13 +55,10 @@ const Track = sequelize.define(
 
     status: {
       type: Sequelize.STRING,
-      allowNull: true,
+      allowNull: false,
     },
-    path: {
-      type: Sequelize.STRING,
-      allowNull: true,
-    },
-  }
+
+  }, {}
 );
 
-export default Track;
+export default Download_Queue;

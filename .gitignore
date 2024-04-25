@@ -4,3 +4,5 @@ database.sqlite
 package-lock.json
 
 .env
+
+old/
