@@ -372,7 +372,7 @@ index 04f4db1..2d341c3 100644
  }
  export interface ImageObject {
 diff --git a/node_modules/spotifydl-core/dist/lib/API.js b/node_modules/spotifydl-core/dist/lib/API.js
-index ebf5c03..3c5548d 100644
+index ebf5c03..7297613 100644
 --- a/node_modules/spotifydl-core/dist/lib/API.js
 +++ b/node_modules/spotifydl-core/dist/lib/API.js
 @@ -14,7 +14,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
@@ -384,7 +384,11 @@ index ebf5c03..3c5548d 100644
              if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
              if (y = 0, t) op = [op[0] & 2, t.value];
              switch (op[0]) {
-@@ -46,9 +46,10 @@ var Track_1 = __importDefault(require("./details/Track"));
+@@ -43,12 +43,14 @@ var spotify_web_api_node_1 = __importDefault(require("spotify-web-api-node"));
+ var Atrist_1 = __importDefault(require("./details/Atrist"));
+ var Playlist_1 = __importDefault(require("./details/Playlist"));
+ var Track_1 = __importDefault(require("./details/Track"));
++var getYtlink_1 = __importDefault(require("./getYtlink"));
  var MAX_LIMIT_DEFAULT = 50;
  var REFRESH_ACCESS_TOKEN_SECONDS = 55 * 60;
  var SpotifyApi = /** @class */ (function () {
@@ -396,15 +400,38 @@ index ebf5c03..3c5548d 100644
          this.verifyCredentials = function () { return __awaiter(_this, void 0, void 0, function () {
              return __generator(this, function (_a) {
                  switch (_a.label) {
-@@ -119,6 +120,7 @@ var SpotifyApi = /** @class */ (function () {
+@@ -105,12 +107,12 @@ var SpotifyApi = /** @class */ (function () {
+             });
+         }); };
+         this.extractTrack = function (trackId) { return __awaiter(_this, void 0, void 0, function () {
+-            var data, details;
+-            return __generator(this, function (_a) {
+-                switch (_a.label) {
++            var data, details, _a;
++            return __generator(this, function (_b) {
++                switch (_b.label) {
+                     case 0: return [4 /*yield*/, this.spotifyAPI.getTrack(trackId)];
+                     case 1:
+-                        data = (_a.sent()).body;
++                        data = (_b.sent()).body;
+                         details = new Track_1.default();
+                         details.name = data.name;
+                         data.artists.forEach(function (artist) {
+@@ -119,6 +121,13 @@ var SpotifyApi = /** @class */ (function () {
                          details.album_name = data.album.name;
                          details.release_date = data.album.release_date;
                          details.cover_url = data.album.images[0].url;
 +                        details.track_number = data.track_number;
++                        details.spotify_id = data.id;
++                        _a = details;
++                        return [4 /*yield*/, (0, getYtlink_1.default)("".concat(data.name, " ").concat(data.artists.join(' ')))];
++                    case 2:
++                        _a.youtube_url = _b.sent();
++                        details.spotify_url = data.external_urls.spotify;
                          return [2 /*return*/, details];
                  }
              });
-@@ -214,11 +216,12 @@ var SpotifyApi = /** @class */ (function () {
+@@ -214,11 +223,12 @@ var SpotifyApi = /** @class */ (function () {
                      case 1:
                          _a.sent();
                          return [4 /*yield*/, this.spotifyAPI.getUser(id)];
@@ -458,17 +485,19 @@ index c14b904..0000000
 -}());
 -exports.default = SongDetails;
 diff --git a/node_modules/spotifydl-core/dist/lib/details/Track.d.ts b/node_modules/spotifydl-core/dist/lib/details/Track.d.ts
-index f92078b..3a007a2 100644
+index f92078b..4b56d14 100644
 --- a/node_modules/spotifydl-core/dist/lib/details/Track.d.ts
 +++ b/node_modules/spotifydl-core/dist/lib/details/Track.d.ts
-@@ -5,5 +5,16 @@ export default class TrackDetails implements ITrack {
+@@ -5,5 +5,20 @@ export default class TrackDetails implements ITrack {
      album_name: string;
      release_date: string;
      cover_url: string;
 -    constructor(name?: string, artists?: string[], album_name?: string, release_date?: string, cover_url?: string);
 +    track_number: number;
-+    youtube_url: string | null;
-+    constructor(name?: string, artists?: string[], album_name?: string, release_date?: string, cover_url?: string, track_number?: number, youtube_url?: string | null);
++    spotify_id: string;
++    spotify_url: string;
++    youtube_url: string;
++    constructor(name?: string, artists?: string[], album_name?: string, release_date?: string, cover_url?: string, track_number?: number, spotify_id?: string, spotify_url?: string, youtube_url?: string);
 +}
 +export interface ITrackDetails {
 +    name: string;
@@ -477,31 +506,41 @@ index f92078b..3a007a2 100644
 +    release_date: string;
 +    cover_url: string;
 +    track_number: number;
-+    youtube_url?: string | null;
++    spotify_id?: string;
++    spotify_url?: string;
++    youtube_url?: string;
  }
 diff --git a/node_modules/spotifydl-core/dist/lib/details/Track.js b/node_modules/spotifydl-core/dist/lib/details/Track.js
-index 8032512..7214d26 100644
+index 8032512..ba87cb0 100644
 --- a/node_modules/spotifydl-core/dist/lib/details/Track.js
 +++ b/node_modules/spotifydl-core/dist/lib/details/Track.js
-@@ -1,17 +1,21 @@
+@@ -1,17 +1,29 @@
  "use strict";
  Object.defineProperty(exports, "__esModule", { value: true });
  var TrackDetails = /** @class */ (function () {
 -    function TrackDetails(name, artists, album_name, release_date, cover_url) {
-+    function TrackDetails(name, artists, album_name, release_date, cover_url, track_number, youtube_url) {
++    function TrackDetails(
++    // Needed to download
++    name, artists, album_name, release_date, cover_url, track_number, 
++    // Optional
++    spotify_id, spotify_url, youtube_url) {
          if (name === void 0) { name = ''; }
          if (artists === void 0) { artists = []; }
          if (album_name === void 0) { album_name = ''; }
          if (release_date === void 0) { release_date = ''; }
          if (cover_url === void 0) { cover_url = ''; }
 +        if (track_number === void 0) { track_number = 0; }
-+        if (youtube_url === void 0) { youtube_url = null; }
++        if (spotify_id === void 0) { spotify_id = ''; }
++        if (spotify_url === void 0) { spotify_url = ''; }
++        if (youtube_url === void 0) { youtube_url = ''; }
          this.name = name;
          this.artists = artists;
          this.album_name = album_name;
          this.release_date = release_date;
          this.cover_url = cover_url;
 +        this.track_number = track_number;
++        this.spotify_id = spotify_id;
++        this.spotify_url = spotify_url;
 +        this.youtube_url = youtube_url;
      }
      return TrackDetails;
