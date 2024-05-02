@@ -1,20 +1,39 @@
 import jwt from "jsonwebtoken";
 import config from "../config.js";
+import User from "../models/User.js";
+import { Op } from "sequelize";
 
-const verifyToken = (req, res, done) => {
-  const { authorization } = req.headers;
-  if (!authorization) return res.status(401).send("Access Denied");
+const verifyToken = (token) => {
+  if (!token) {
+    return null;
+  }
 
-  jwt.verify(authorization, config.jwt.secret, (err, decoded) => {
-    if (err) {
-      done(new Error("Unauthorized"));
-    }
+  return new Promise((resolve, reject) => {
+    jwt.verify(token, config.jwt.secret, async (err, decoded) => {
+      if (err) {
+        resolve(null);
+        // reject(err);
+      }
 
-    req.user = decoded;
-    done();
+      if (!decoded || !decoded.id || !decoded.username) {
+        resolve(null);
+        // reject(new Error("Unauthorized"));
+      }
+
+      const dbUser = await User.findOne({
+        where: {
+          [Op.and]: [{ id: decoded.id }, { username: decoded.username }],
+        },
+      });
+
+      if (!dbUser) {
+        resolve(null);
+        // reject(new Error("Unauthorized"));
+      }
+
+      resolve(decoded);
+    });
   });
-
-  done();
 };
 
 export default verifyToken;

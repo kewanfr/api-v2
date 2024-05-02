@@ -44,12 +44,6 @@ const verifyLogged = (req, res, done) => {
     done();
   });
 
-  // console.log("req.user", req.user);
-  // if (!req.user) {
-  //   done(new Error("Unauthorized"));
-  // }
-
-  // done();
 };
 
 export default verifyLogged;
