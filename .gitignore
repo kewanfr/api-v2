@@ -6,3 +6,9 @@ package-lock.json
 .env
 
 old/
+.vscode
+
+store/
+songs/
+tests/
+TODO.md
