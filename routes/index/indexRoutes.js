@@ -1,7 +1,7 @@
-import { index } from "./indexController.js";
+import { index, infos } from "./indexController.js";
 
 export default (fastify, options, done) => {
-  fastify.all('/', index);
+  fastify.get("/infos", infos);
 
   done();
-} 
+};
