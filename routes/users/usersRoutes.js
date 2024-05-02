@@ -1,7 +1,8 @@
 import verifyLogged from "../../utils/verifyLogged.js";
+import verifyAdmin from "../../utils/verifyAdmin.js";
 
+import userSchema from "../../models/User.js";
 
-import fastifyAuth from "@fastify/auth";
 import {
   deleteUser,
   getAllUsersHandler,
@@ -21,17 +22,18 @@ const loggedRoutes = (fastify) => {
     handler: getAllUsersHandler,
   });
 
-  fastify.get("/users/:id", {
+  fastify.get("/user/:id", {
     preHandler: fastify.auth([verifyAdmin]),
     handler: getUser,
   });
 
-  fastify.put("/users/:id", {
+  fastify.put("/user/:id", {
     preHandler: fastify.auth([verifyAdmin]),
     handler: updateUser,
   });
 
-  fastify.delete("/users/:id", {
+  fastify.delete("/user/:id", {
+    // schema: userSchema.deleteUser,
     preHandler: fastify.auth([verifyAdmin]),
     handler: deleteUser,
   });
