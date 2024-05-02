@@ -19,7 +19,7 @@ const Download_Queue = sequelize.define(
       allowNull: false,
     },
     artists: {
-      type: Sequelize.ARRAY(Sequelize.STRING),
+      type: Sequelize.STRING, // Array of strings
       allowNull: true,
     },
     album_name: {
@@ -42,6 +42,7 @@ const Download_Queue = sequelize.define(
     // Optional external links
     spotify_id: {
       type: Sequelize.STRING,
+      unique: true,
       allowNull: true,
     },
     spotify_url: {
@@ -53,12 +54,23 @@ const Download_Queue = sequelize.define(
       allowNull: true,
     },
 
-    status: {
-      type: Sequelize.STRING,
-      allowNull: false,
+    user_id: {
+      type: Sequelize.INTEGER,
+      allowNull: true,
     },
 
-  }, {}
+    status: {
+      type: {
+        type: Sequelize.ENUM,
+        values: [0, 1, 2, 3, 4], // ['pending', 'downloading', 'finished', 'error', 'cancelled']
+      },
+      defaultValue: 0,
+      allowNull: false,
+    },
+  },
+  {}
 );
+
+Download_Queue.belongsTo(User, { foreignKey: "user_id" });
 
 export default Download_Queue;
