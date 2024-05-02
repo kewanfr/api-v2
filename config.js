@@ -10,7 +10,8 @@ export default {
     database: process.env.DB_NAME,
   },
   server: {
-    port: process.env.PORT,
+    host: process.env.HOST ?? "localhot",
+    port: process.env.PORT ?? 3000,
   },
   jwt: {
     secret: process.env.JWT_SECRET,
