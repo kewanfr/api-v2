@@ -14,3 +14,15 @@ export const getFiles = async (source) => {
     .filter((dirent) => dirent.isFile())
     .map((dirent) => dirent.name);
 };
+
+export const ensureDir = async (dir) => {
+  if (!fs.existsSync(dir)) {
+    return await fs.mkdirSync(dir, { recursive: true });
+  }
+  return true;
+};
+
+export const getProjectVersion = () => {
+  return packageJson.version;
+};
+
