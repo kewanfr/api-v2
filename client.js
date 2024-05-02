@@ -2,6 +2,9 @@ import { EventEmitter } from "node:events";
 import fastify from "fastify";
 import cors from "@fastify/cors";
 import fastifyStatic from "@fastify/static";
+import fastifyAuth from "@fastify/auth";
+
+import fastifyWebsocket from "@fastify/websocket";
 
 import path from "path";
 import fs from "fs";
@@ -37,6 +40,12 @@ class MyClient extends EventEmitter {
 
     await this.app.register(cors, {
       origin: "*",
+    });
+
+    await this.app.register(fastifyWebsocket, {
+      handle: (socket, req) => {
+        socket.on("message", (data) => socket.send(data)); // creates an echo server
+      },
     });
 
     // log all requests
