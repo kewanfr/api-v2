@@ -377,33 +377,9 @@ export class MusicFunctions {
 
   async downloadFromSpotifyId(spotify_id, user_id = null) {
     console.log(spotify_id, "spotify_id");
-    // const token = await this.spotifyClient.getToken();
-    // const API_URL = `https://api.spotify.com/v1/tracks/${track_id}?market=FR`;
-
-    // const response = await fetch(API_URL, {
-    //   method: "GET",
-    //   headers: {
-    //     Authorization: `Bearer ${token}`,
-    //   },
-    // });
-
-    // const item = await response.json();
-
-    // let track_data = await parseTrackResult(item, { searchYoutube: true });
 
     let track_data = await this.spotifyDownloader.getTrack(spotify_id);
 
     return await this.addSongToQueue(track_data, user_id);
-
-    try {
-      const result = await this.downloadFromDatas(track_data);
-      return result;
-    } catch (error) {
-      console.error("Error while downloading", error);
-      return {
-        error: true,
-        track: track_data.name + " - " + track_data.artist,
-      };
-    }
   }
 }

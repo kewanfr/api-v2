@@ -17,4 +17,32 @@ export default {
     secret: process.env.JWT_SECRET,
     expiresIn: 3 * 86400, // 3 days
   },
+
+  music: {
+    spotify_client_id: process.env.SPOTIFY_CLIENT_ID,
+    spotify_client_secret: process.env.SPOTIFY_CLIENT_SECRET,
+    youtube_cookie: process.env.YOUTUBE_COOKIES,
+
+    paths: {
+      temp_songs: process.env.TEMP_SONGS_PATH ?? "./temp/songs",
+      temp_covers: process.env.TEMP_COVERS_PATH ?? "./temp/covers",
+      final: process.env.FINAL_SONGS_PATH ?? "./songs/",
+    },
+  },
+
+  plex: {
+    url: process.env.PLEX_URL,
+    username: process.env.PLEX_USERNAME,
+    password: process.env.PLEX_PASSWORD,
+    deviceName: "Plex Music API",
+  },
+
+  QUEUE_STATUS: {
+    PENDING: 0,
+    DOWNLOADING: 1,
+    FINISHED: 2,
+    ERROR: 3,
+    CANCELLED: 4,
+    ALREADY_IN_QUEUE: 5,
+  },
 };
