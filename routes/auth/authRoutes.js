@@ -5,12 +5,12 @@ import {
   getUserHandler,
 } from "./authController.js";
 
-import fastifyAuth from "@fastify/auth";
-import verifyToken from "../../utils/verifyToken.js";
+import verifyLogged from "../../utils/verifyLogged.js";
+
 
 const loggedAuthRoutes = (fastify) => {
   fastify.get("/auth/me", {
-    preHandler: fastify.auth([verifyToken]),
+    preHandler: fastify.auth([verifyLogged]),
     handler: getUserHandler,
   });
 };
@@ -24,7 +24,10 @@ export default (fastify, options, done) => {
     handler: authLoginHandler,
   });
 
-  fastify.register(fastifyAuth).after(() => loggedAuthRoutes(fastify));
+
+  loggedAuthRoutes(fastify);
+
+  // fastify.register(fastifyAuth).after(() => loggedAuthRoutes(fastify));
 
   done();
 };

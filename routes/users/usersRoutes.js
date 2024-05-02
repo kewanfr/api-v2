@@ -1,5 +1,5 @@
-import verifyToken from "../../utils/verifyToken.js";
-import verifyAdmin from "../../utils/verifyAdmin.js";
+import verifyLogged from "../../utils/verifyLogged.js";
+
 
 import fastifyAuth from "@fastify/auth";
 import {
@@ -12,7 +12,7 @@ import {
 
 const loggedRoutes = (fastify) => {
   fastify.get("/users/me", {
-    preHandler: fastify.auth([verifyToken]),
+    preHandler: fastify.auth([verifyLogged]),
     handler: getUserHandler,
   });
 
@@ -38,7 +38,9 @@ const loggedRoutes = (fastify) => {
 };
 
 export default (fastify, options, done) => {
-  fastify.register(fastifyAuth).after(() => loggedRoutes(fastify));
+  loggedRoutes(fastify);
+
+  // fastify.register(fastifyAuth).after(() => loggedRoutes(fastify));
 
   done();
 };

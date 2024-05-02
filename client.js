@@ -14,6 +14,7 @@ const __dirname = dirname(__filename);
 
 import sequelize from "./models/database.js";
 import { getDirectories, getFiles } from "./utils/functions.js";
+import config from "./config.js";
 
 const ROUTES_DIR = path.join(__dirname, "routes");
 const MODELS_DIR = path.join(__dirname, "models");
@@ -25,12 +26,16 @@ class MyClient extends EventEmitter {
       // logger: true
     });
 
-    this.app.register(fastifyStatic, {
+    this.init(options);
+  }
+
+  async init(options) {
+    await this.app.register(fastifyStatic, {
       root: path.join(__dirname, "public"),
       prefix: "/",
     });
 
-    this.app.register(cors, {
+    await this.app.register(cors, {
       origin: "*",
     });
 
@@ -42,31 +47,38 @@ class MyClient extends EventEmitter {
       done();
     });
 
-    this.fastify = fastify;
+    this.app.addHook("onError", (request, reply, error, done) => {
+      console.error(error);
+      done();
+    });
+
     this.sequelize = sequelize;
 
     this.options = {
-      port: 3000,
+      port: config.server.port,
       host: "0.0.0.0",
       ...options,
     };
 
     this.directories = [];
 
-    this.connectDatabase();
-    this.start();
+    await this.connectDatabase();
+    await this.start();
   }
 
   async start() {
     await this.loadRoutes();
 
     return new Promise((resolve, reject) => {
-      this.app.listen(this.options, (err, address) => {
+      this.app.listen(this.options, async (err, address) => {
         if (err) {
           console.error(err);
           reject(err);
         } else {
-          console.log(`Server listening on ${address}`);
+          console.log(
+            `Server listening on http://${config.server.host}:${config.server.port}`
+          );
+          await this.app.ready();
           resolve(address);
         }
       });
@@ -90,8 +102,6 @@ class MyClient extends EventEmitter {
   async loadModels() {
     const files = await getFiles(MODELS_DIR);
 
-    console.log(files);
-
     // seulement si ça commence par une majuscule
     const models = files
       .filter((dir) => /^[A-Z]/.test(dir))
@@ -108,6 +118,8 @@ class MyClient extends EventEmitter {
       await this.loadModels();
       await this.sequelize.sync(); // Crée la base de données si elle n'existe pas
       console.log("Database connected and synchronized.");
+
+      return this.sequelize;
     } catch (err) {
       console.error(err);
       process.exit(1);
@@ -118,18 +130,19 @@ class MyClient extends EventEmitter {
     return new Promise(async (resolve, reject) => {
       const directories = await getDirectories(ROUTES_DIR);
       this.directories = directories;
+      await this.app.register(fastifyAuth).after(async () => {
+        for (const dir of directories) {
+          if (!fs.existsSync(path.join(ROUTES_DIR, dir, `${dir}Routes.js`))) {
+            console.log(`No route file found for ${dir}`);
+            continue;
+          }
+          const route = await import(`./routes/${dir}/${dir}Routes.js`);
 
-      for (const dir of directories) {
-        if (!fs.existsSync(path.join(ROUTES_DIR, dir, `${dir}Routes.js`))) {
-          console.log(`No route file found for ${dir}`);
-          continue;
+          console.log(`Registering route ${dir}`);
+
+          this.app.register(route.default);
         }
-        const route = await import(`./routes/${dir}/${dir}Routes.js`);
-
-        console.log(`Registering route ${dir}`);
-
-        this.app.register(route.default);
-      }
+      });
 
       resolve();
     });
