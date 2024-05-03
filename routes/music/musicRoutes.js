@@ -1,13 +1,13 @@
-import fastify from "fastify";
-
 import verifyLogged from "../../utils/verifyLogged.js";
-import verifyAdmin from "../../utils/verifyAdmin.js";
 import { MusicFunctions } from "../../utils/music/music.js";
 import config from "../../config.js";
-import yts from "yt-search";
 import { index } from "../index/indexController.js";
+import LyricsFunctions from "../../utils/music/lyrics.js";
+import ytdl from "ytdl-core";
+import { cleanVideoTitle } from "../../utils/functions.js";
 
 const musicController = new MusicFunctions();
+const lyricsController = new LyricsFunctions();
 
 const loggedMusicRoutes = (fastify) => {};
 
@@ -217,6 +217,62 @@ export default (fastify, options, done) => {
     },
   });
 
+  fastify.get("/music/download/youtube/:youtube_id", {
+    preHandler: fastify.auth([verifyLogged]),
+    handler: async (req, reply) => {
+      let { youtube_id } = req.params;
+
+      let youtube_url = `https://www.youtube.com/watch?v=${youtube_id}`;
+
+      let repYt = await ytdl.getBasicInfo(youtube_url);
+
+      let details = repYt.videoDetails;
+      let title = cleanVideoTitle(details.title, details.author.name);
+      let track_info = {
+        name: title,
+        artists: [details.author.name],
+        album_name: title,
+        release_date: details.uploadDate.split("T")[0],
+        cover_url: details.thumbnails[details.thumbnails.length - 1].url,
+        track_number: 1,
+        youtube_url,
+        spotify_id: null,
+      };
+
+      let response = await musicController.downloadFromDatas(
+        track_info,
+        req.user?.id
+      );
+
+      if (response == config.QUEUE_STATUS.ALREADY_IN_QUEUE) {
+        return reply.code(200).send({
+          message: "File already downloaded",
+          track: track_info.title,
+          spotify_id: track_info.spotify_id || "",
+          youtube_id,
+        });
+      }
+
+      if (response == config.QUEUE_STATUS.PENDING) {
+        return reply.code(200).send({
+          message: "File added to the queue",
+          track: track_info.title,
+          spotify_id: track_info.spotify_id || "",
+          youtube_id,
+        });
+      }
+
+      return reply.code(500).send({
+        message: "An error occurred",
+        track: track_info.title,
+        spotify_id: track_info.spotify_id || "",
+        youtube_id,
+      });
+
+      // return reply.code(200).send(track_info);
+    },
+  });
+
   fastify.get("/music/download/search/:query", {
     handler: async (req, reply) => {
       const { query } = req.params;
@@ -258,6 +314,22 @@ export default (fastify, options, done) => {
         track: track_title,
         spotify_id: track_info.spotify_id,
       });
+    },
+  });
+
+  fastify.get("/music/lyrics/:query", {
+    handler: async (req, reply) => {
+      const { query } = req.params;
+
+      let response = await lyricsController.getLyrics(query);
+
+      if (!response) {
+        return reply.code(404).send({
+          message: "No lyrics found",
+        });
+      }
+
+      return reply.code(200).send(response);
     },
   });
 

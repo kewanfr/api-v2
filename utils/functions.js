@@ -42,6 +42,16 @@ export const fetchPage = async (args) => {
   return text;
 };
 
+export const cleanVideoTitle = (title, artist) => {
+  const regex = new RegExp(`${artist} - `, "g");
+  title = title.replace(regex, "");
+  // remove (Official Video), (Clip officiel) or [clip officiel] from the title
+  // no matter case
+  title = title.replace(/\(.*\)/gi, "").replace(/\[.*\]/gi, "");
+  return title;
+  // return title.replace(regex, "")
+};
+
 export const cleanName = (str) =>
   str
     .replace(":", "-")
