@@ -24,8 +24,6 @@ const verifyLogged = (req, res, done) => {
       // return done(new Error("Unauthorized"));
     }
 
-    console.log("decoded", decoded);
-
     const dbUser = await User.findOne({
       where: {
         [Op.and]: [{ id: decoded.id }, { username: decoded.username }],
@@ -40,7 +38,6 @@ const verifyLogged = (req, res, done) => {
     }
 
     req.user = decoded;
-    console.log("req.user", req.user);
     done();
   });
 

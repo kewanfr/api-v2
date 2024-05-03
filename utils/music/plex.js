@@ -71,7 +71,6 @@ class plexFunctions {
 
   async getActualSessions() {
     let sessions = await this.plexClient.query("/status/sessions");
-    console.log(sessions);
 
     if (!sessions.MediaContainer?.Metadata) {
       return [];

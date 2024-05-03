@@ -17,6 +17,7 @@ import { Op } from "sequelize";
 import path from "path";
 
 import * as YTMusic from "node-youtube-music";
+import LyricsFunctions from "./lyrics.js";
 
 export class MusicFunctions {
   constructor() {
@@ -56,6 +57,8 @@ export class MusicFunctions {
     this.downloadQueue();
 
     this.socket = null;
+
+    this.lyrics = new LyricsFunctions();
   }
 
   setSocket(socket) {
@@ -156,7 +159,6 @@ export class MusicFunctions {
 
   async getTrack(track_id) {
     const track_data = await this.spotifyDownloader.getTrack(track_id);
-    console.log(track_data, "track_data");
     return track_data;
   }
 
@@ -336,6 +338,13 @@ export class MusicFunctions {
       return;
     }
 
+    if (fs.existsSyns(temp_path.replace(".mp3", ".txt"))) {
+      await fs.renameSync(
+        temp_path.replace(".mp3", ".txt"),
+        final_path.replace(".mp3", ".txt")
+      );
+    }
+
     this.sendSocketMessage({
       action: "song_downloaded",
       song: track_data,
@@ -379,6 +388,11 @@ export class MusicFunctions {
     const filePath = await path.join(
       this.TEMP_SONGS_PATH,
       `${track_info.name} - ${track_info.artists}.mp3`
+    );
+
+    const lyrics = await this.lyrics.getAndSaveTxtLyrics(
+      `${track_info.name} - ${track_info.artists}`,
+      filePath.replace(".mp3", ".txt")
     );
 
     track_info.artists = track_info.artists.split(", ");
@@ -454,8 +468,6 @@ export class MusicFunctions {
   }
 
   async downloadFromSpotifyId(spotify_id, user_id = null) {
-    console.log(spotify_id, "spotify_id");
-
     let track_data = await this.spotifyDownloader.getTrack(spotify_id);
 
     return await this.addSongToQueue(track_data, user_id);

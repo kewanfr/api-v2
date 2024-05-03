@@ -77,8 +77,6 @@ export default (fastify, options, done) => {
 
       let items = await musicController.searchYoutube(query);
 
-      console.log("items", items);
-
       reply.code(200).send(items);
     },
   });
@@ -195,8 +193,6 @@ export default (fastify, options, done) => {
     preHandler: fastify.auth([verifyLogged]),
     handler: async (req, reply) => {
       const { spotify_track_id } = req.params;
-
-      console.log("spotify_track_id", spotify_track_id);
 
       let response = await musicController.downloadFromSpotifyId(
         spotify_track_id,

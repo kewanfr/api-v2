@@ -17,6 +17,31 @@ export const getFiles = async (source) => {
     .map((dirent) => dirent.name);
 };
 
+export const fetchJSON = async (args) => {
+  const response = await fetch(args);
+
+  if (!response.ok) {
+    const message = `An error has occured: ${response.status}`;
+    throw new Error(message);
+  }
+
+  const json = await response.json();
+  return json;
+};
+
+export const fetchPage = async (args) => {
+  const response = await fetch(args);
+
+  if (!response.ok) {
+    const message = `An error has occured: ${response.status}`;
+    throw new Error(message);
+  }
+  // return response;
+  // response.
+  const text = await response.text();
+  return text;
+};
+
 export const cleanName = (str) =>
   str
     .replace(":", "-")
