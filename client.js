@@ -4,7 +4,8 @@ import cors from "@fastify/cors";
 import fastifyStatic from "@fastify/static";
 import fastifyAuth from "@fastify/auth";
 
-import fastifyWebsocket from "@fastify/websocket";
+// import fastifyWebsocket from "@fastify/websocket";
+import fastifySocketIo from 'fastify-socket.io';
 
 import path from "path";
 import fs from "fs";
@@ -19,6 +20,7 @@ import sequelize from "./models/database.js";
 import { getDirectories, getFiles } from "./utils/functions.js";
 import config from "./config.js";
 
+
 const ROUTES_DIR = path.join(__dirname, "routes");
 const MODELS_DIR = path.join(__dirname, "models");
 
@@ -27,12 +29,12 @@ class MyClient extends EventEmitter {
     super();
     this.app = fastify({
       // logger: true
-      http2: true,
-      https: {
-        allowHTTP1: true,
-        key: fs.readFileSync(path.join(__dirname, "certs", "privkey.pem")),
-        cert: fs.readFileSync(path.join(__dirname, "certs", "cert.pem")),
-      },
+      // http2: true,
+      // https: {
+      //   allowHTTP1: true,
+      //   key: fs.readFileSync(config.https.key),
+      //   cert: fs.readFileSync(config.https.cert),
+      // },
     });
 
     this.init(options);
@@ -48,16 +50,22 @@ class MyClient extends EventEmitter {
       origin: "*",
     });
 
-    await this.app.register(fastifyWebsocket, {
-      server: this.app.server,
-      options: {
-        server: this.app.server,
-        port: 443,
-      },
-      handle: (socket, req) => {
-        socket.on("message", (data) => socket.send(data)); // creates an echo server
-      },
-    });
+    // await this.app.register(fastifyWebsocket, {
+    //   server: this.app.server,
+    //   options: {
+    //     server: this.app.server,
+    //     // port: 443,
+    //   },
+    //   handle: (socket, req) => {
+    //     socket.on("message", (data) => socket.send(data)); // creates an echo server
+    //   },
+    // });
+
+    await this.app.register(fastifySocketIo, {
+      cors: {
+        origin: "*",
+      }
+    })
 
     // log all requests
     this.app.addHook("onRequest", (request, reply, done) => {
@@ -71,6 +79,16 @@ class MyClient extends EventEmitter {
       console.error(error);
       done();
     });
+
+    // this.app.ready((err) => {
+    //   if (err) throw err;
+    
+    //   this.app.io.on("connect", (socket) => {
+    //     console.info("Socket connected!", socket.id);
+
+    //     this.app.socket = socket;
+    //   } );
+    // });
 
     this.sequelize = sequelize;
 

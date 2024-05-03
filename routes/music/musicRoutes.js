@@ -14,43 +14,71 @@ const loggedMusicRoutes = (fastify) => {};
 const loggedAdminRoutes = (fastify) => {};
 
 export default (fastify, options, done) => {
+
+  console.log(fastify.io);
+  // console.log(JSON.stringify(fastify.io));
+
+  fastify.io.on("connection", (socket) => {
+    console.log("Client connected", socket.id, socket);
+    musicController.setSocket(fastify.io);
+    socket.on("disconnect", () => {
+      console.log("Client disconnected");
+    });
+
+    socket.emit("message", "Hello from server");
+
+    socket.on("message", async (message) => {
+      console.log("Message received: " + message);
+
+      fastify.io.emit("message", "Hello from server");
+    });
+
+    fastify.io.sockets.emit("message", "Hello from server (all)");
+  });
+
+  fastify.io.on("message", (message) => {
+    console.log("Message received: " + message);
+
+    fastify.io.emit("message", "Hello from server");
+  });
+
   fastify.route({
     method: "GET",
     url: "/",
     handler: index,
-    wsHandler: (socket, req) => {
-      fastify.socket = socket;
+    // wsHandler: (socket, req) => {
+    //   fastify.socket = socket;
 
-      musicController.setSocket(fastify.socket);
+    //   musicController.setSocket(fastify.socket);
 
-      console.log("WebSocket Connected");
+    //   console.log("WebSocket Connected");
 
-      socket.on("message", async (message) => {
-        console.log(message.toString());
-        const data = JSON.parse(message.toString());
+    //   socket.on("message", async (message) => {
+    //     console.log(message.toString());
+    //     const data = JSON.parse(message.toString());
 
-        if (data.action === "message") {
-          musicController.sendSocketMessage({
-            action: "message",
-            message: "hello client",
-          });
-        } else if (data.action == "queue") {
-          const queue = await musicController.getDownloadQueue();
+    //     if (data.action === "message") {
+    //       musicController.sendSocketMessage({
+    //         action: "message",
+    //         message: "hello client",
+    //       });
+    //     } else if (data.action == "queue") {
+    //       const queue = await musicController.getDownloadQueue();
 
-          musicController.sendSocketMessage({
-            action: "queue",
-            queue,
-          });
-        } else if (data.action == "tracks") {
-          const tracks = await musicController.getDownloadedTracks();
+    //       musicController.sendSocketMessage({
+    //         action: "queue",
+    //         queue,
+    //       });
+    //     } else if (data.action == "tracks") {
+    //       const tracks = await musicController.getDownloadedTracks();
 
-          musicController.sendSocketMessage({
-            action: "tracks",
-            tracks,
-          });
-        }
-      });
-    },
+    //       musicController.sendSocketMessage({
+    //         action: "tracks",
+    //         tracks,
+    //       });
+    //     }
+    //   });
+    // },
   });
 
   fastify.get("/music/search/:query", {

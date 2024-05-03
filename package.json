@@ -21,6 +21,7 @@
     "dotenv": "^16.4.5",
     "fastify": "^4.26.2",
     "fastify-plugin": "^4.5.1",
+    "fastify-socket.io": "^5.0.0",
     "fluent-ffmpeg": "^2.1.2",
     "jsdom": "^24.0.0",
     "jsonwebtoken": "^9.0.2",
@@ -28,11 +29,13 @@
     "node-youtube-music": "^0.10.3",
     "plex-api": "^5.3.2",
     "sequelize": "^6.37.2",
+    "socket.io": "^4.7.5",
     "spotify-get": "^1.1.10",
     "spotify-web-api-node": "^5.0.2",
     "spotifydl-core": "^0.2.0",
     "sqlite3": "^5.1.7",
     "uuid": "^9.0.1",
+    "websocket": "^1.0.34",
     "yt-search": "^2.10.4",
     "ytdl-core": "^4.11.5"
   }

@@ -18,6 +18,11 @@ export default {
     expiresIn: 3 * 86400, // 3 days
   },
 
+  https: {
+    enabled: process.env.HTTPS_ENABLED ?? false,
+    key: process.env.HTTPS_KEY_PATH ?? "",
+    cert: process.env.HTTPS_CERT_PATH ?? "",
+  },
   music: {
     spotify_client_id: process.env.SPOTIFY_CLIENT_ID,
     spotify_client_secret: process.env.SPOTIFY_CLIENT_SECRET,
