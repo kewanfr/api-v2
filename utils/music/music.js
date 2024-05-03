@@ -393,6 +393,8 @@ export class MusicFunctions {
         ...track_info,
         path: await path.join(
           this.FINAL_PATH,
+          track_info.artists.split(", ")[0],
+          track_info.album_name,
           `${track_info.name} - ${track_info.artists}.mp3`
         ),
       });
