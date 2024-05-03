@@ -97,6 +97,20 @@ export default (fastify, options, done) => {
     },
   });
 
+  fastify.delete("/music/track/:track_id", {
+    handler: async (req, reply) => {
+      const { track_id } = req.params;
+
+      let response = await musicController.deleteTrack(track_id);
+
+      if (!response.error) {
+        return reply.code(200).send(response);
+      }
+
+      return reply.code(500).send(response);
+    },
+  });
+
   fastify.post("/music/download/data", {
     preHandler: fastify.auth([verifyLogged]),
     handler: async (req, reply) => {
