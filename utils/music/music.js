@@ -223,6 +223,12 @@ export class MusicFunctions {
     return queue;
   }
 
+  async getDownloadedTracks() {
+    const results = await Track.findAll();
+
+    return results.map((item) => item.dataValues);
+  }
+
   async searchQueueByName(name) {
     const results = await Download_Queue.findOne({
       where: {
