@@ -159,6 +159,54 @@ export class MusicFunctions {
     return track_data;
   }
 
+  async deleteTrack(spotify_id) {
+    const track = await Track.findOne({
+      where: {
+        spotify_id: spotify_id,
+      },
+    });
+
+    if (!track) {
+      return {
+        error: true,
+        message: "Track not found",
+      };
+    }
+
+    const track_path = path.join(
+      this.FINAL_PATH,
+      track.artists.split(", ")[0],
+      track.album_name,
+      `${track.name} - ${track.artists}.mp3`
+    );
+    try {
+      await fs.unlinkSync(track_path);
+
+      await Track.destroy({
+        where: {
+          spotify_id: spotify_id,
+        },
+      });
+
+      await Download_Queue.destroy({
+        where: {
+          spotify_id: track.spotify_id,
+        },
+      });
+
+      return {
+        error: false,
+        message: "Track deleted",
+      };
+    } catch (error) {
+      console.error("Error while deleting track", error);
+      return {
+        error: true,
+        message: "An error occurred",
+      };
+    }
+  }
+
   async getDownloadQueue() {
     const results = await Download_Queue.findAll({
       where: {
