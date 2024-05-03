@@ -89,6 +89,14 @@ export default (fastify, options, done) => {
     },
   });
 
+  fastify.get("/music/tracks", {
+    handler: async (req, reply) => {
+      let response = await musicController.getDownloadedTracks();
+
+      reply.code(200).send(response);
+    },
+  });
+
   fastify.post("/music/download/data", {
     preHandler: fastify.auth([verifyLogged]),
     handler: async (req, reply) => {
