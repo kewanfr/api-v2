@@ -1,6 +1,7 @@
 import fs from "fs";
 import packageJson from "../package.json" assert { type: "json" };
 import yts from "yt-search";
+import Track from "../models/Track.js";
 
 export const getDirectories = async (source) => {
   return fs
@@ -63,6 +64,11 @@ export const parseTrackResult = async (data, { searchYoutube = false }) => {
     track_number: data.track_number,
 
     duration_ms: data.duration_ms,
+
+    // Verify if the tracks is already downloaded
+    downloaded: (await Track.findOne({ where: { spotify_id: data.id } }))
+      ? true
+      : false,
 
     spotify_id: data.id,
     spotify_url: data.external_urls.spotify,
