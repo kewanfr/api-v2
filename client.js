@@ -29,6 +29,7 @@ class MyClient extends EventEmitter {
       // logger: true
       http2: true,
       https: {
+        allowHTTP1: true,
         key: fs.readFileSync(path.join(__dirname, "certs", "privkey.pem")),
         cert: fs.readFileSync(path.join(__dirname, "certs", "cert.pem")),
       },
