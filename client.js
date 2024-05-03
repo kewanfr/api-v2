@@ -27,6 +27,11 @@ class MyClient extends EventEmitter {
     super();
     this.app = fastify({
       // logger: true
+      http2: true,
+      https: {
+        key: fs.readFileSync(path.join(__dirname, "certs", "privkey.pem")),
+        cert: fs.readFileSync(path.join(__dirname, "certs", "cert.pem")),
+      },
     });
 
     this.init(options);
