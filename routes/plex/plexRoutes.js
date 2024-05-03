@@ -1,5 +1,3 @@
-import LyricsFunctions from "../../utils/music/lyrics.js";
-import LyricsGeniusFunctions from "../../utils/music/lyricsGenius.js";
 import plexFunctions from "../../utils/music/plex.js";
 
 const plexController = new plexFunctions();
@@ -17,10 +15,7 @@ export default (fastify, options, done) => {
     handler: async (req, reply) => {
       let playing = await plexController.getActualPlaying();
 
-      const lyrics = new LyricsFunctions();
-      reply
-        .code(200)
-        .send(await lyrics.getLyrics(playing.title + " - " + playing.artist));
+      reply.code(200).send(playing);
     },
   });
 
