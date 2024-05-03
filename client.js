@@ -29,12 +29,12 @@ class MyClient extends EventEmitter {
     super();
     this.app = fastify({
       // logger: true
-      // http2: true,
-      // https: {
-      //   allowHTTP1: true,
-      //   key: fs.readFileSync(config.https.key),
-      //   cert: fs.readFileSync(config.https.cert),
-      // },
+      http2: true,
+      https: {
+        allowHTTP1: true,
+        key: fs.readFileSync(config.https.key),
+        cert: fs.readFileSync(config.https.cert),
+      },
     });
 
     this.init(options);
