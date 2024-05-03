@@ -25,7 +25,7 @@ export default (fastify, options, done) => {
 
       console.log("WebSocket Connected");
 
-      socket.once("message", (message) => {
+      socket.on("message", async (message) => {
         console.log(message.toString());
         const data = JSON.parse(message.toString());
 
@@ -33,6 +33,20 @@ export default (fastify, options, done) => {
           musicController.sendSocketMessage({
             action: "message",
             message: "hello client",
+          });
+        } else if (data.action == "queue") {
+          const queue = await musicController.getDownloadQueue();
+
+          musicController.sendSocketMessage({
+            action: "queue",
+            queue,
+          });
+        } else if (data.action == "tracks") {
+          const tracks = await musicController.getDownloadedTracks();
+
+          musicController.sendSocketMessage({
+            action: "tracks",
+            tracks,
           });
         }
       });
@@ -92,6 +106,14 @@ export default (fastify, options, done) => {
   fastify.get("/music/tracks", {
     handler: async (req, reply) => {
       let response = await musicController.getDownloadedTracks();
+
+      reply.code(200).send(response);
+    },
+  });
+
+  fastify.get("/music/queue", {
+    handler: async (req, reply) => {
+      let response = await musicController.getDownloadQueue();
 
       reply.code(200).send(response);
     },

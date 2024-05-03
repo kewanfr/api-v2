@@ -6,6 +6,7 @@ import Track from "../../models/Track.js";
 
 import fs from "fs";
 import {
+  cleanEmptyDirs,
   ensureDir,
   parseAlbumResult,
   parseArtistResult,
@@ -180,7 +181,9 @@ export class MusicFunctions {
       `${track.name} - ${track.artists}.mp3`
     );
     try {
-      await fs.unlinkSync(track_path);
+      if (fs.existsSync(track_path)) await fs.unlinkSync(track_path);
+
+      await cleanEmptyDirs(this.FINAL_PATH);
 
       await Track.destroy({
         where: {
@@ -192,6 +195,11 @@ export class MusicFunctions {
         where: {
           spotify_id: track.spotify_id,
         },
+      });
+
+      this.sendSocketMessage({
+        action: "song_deleted",
+        song: track,
       });
 
       return {
@@ -226,7 +234,19 @@ export class MusicFunctions {
   async getDownloadedTracks() {
     const results = await Track.findAll();
 
-    return results.map((item) => item.dataValues);
+    return results.map((item) => {
+      delete item.dataValues.id;
+      delete item.dataValues.release_date;
+      delete item.dataValues.createdAt;
+      delete item.dataValues.updatedAt;
+      delete item.dataValues.status;
+      delete item.dataValues.spotify_url;
+      delete item.dataValues.track_number;
+      delete item.dataValues.path;
+      delete item.dataValues.user_id;
+
+      return item.dataValues;
+    });
   }
 
   async searchQueueByName(name) {
@@ -388,6 +408,8 @@ export class MusicFunctions {
       );
 
       track_info.artists = track_info.artists.join(", ");
+
+      track_info.youtube_url = result.youtube_url ?? null;
 
       await Track.create({
         ...track_info,

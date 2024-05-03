@@ -32,6 +32,36 @@ export const ensureDir = async (dir) => {
   return true;
 };
 
+
+
+export const cleanEmptyDirs = async (path) => {
+  // Je veux que ce script supprime les dossiers qui n'ont ni fichiers ni dossiers
+  // Si un dossier a des dossiers, alors on appelle la fonction récursivement
+  // Si le dossier du dossier est vide (pas de fichiers ni de dossiers), alors on le supprime
+  // Puis on vérifie si le dossier parent est vide, si oui, on le supprime
+  // On continue jusqu'à ce qu'on atteigne le dossier racine
+  const files = fs.readdirSync(path);
+  if (files.length === 0) {
+    fs.rmdirSync(path);
+    return;
+  }
+
+  files.forEach((file) => {
+    const filePath = `${path}/${file}`;
+    if (fs.lstatSync(filePath).isDirectory()) {
+      cleanEmptyDirs(filePath);
+    }
+  });
+
+  // Check if the directory is empty
+  const filesAfter = fs.readdirSync(path);
+  if (filesAfter.length === 0) {
+    fs.rmdirSync(path);
+  }
+
+  return;
+};
+
 export const getProjectVersion = () => {
   return packageJson.version;
 };
