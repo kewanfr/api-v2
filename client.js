@@ -50,6 +50,10 @@ class MyClient extends EventEmitter {
 
     await this.app.register(fastifyWebsocket, {
       server: this.app.server,
+      options: {
+        server: this.app.server,
+        port: 443,
+      },
       handle: (socket, req) => {
         socket.on("message", (data) => socket.send(data)); // creates an echo server
       },
