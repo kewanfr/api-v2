@@ -23,11 +23,13 @@ export default (fastify, options, done) => {
 
       musicController.setSocket(fastify.socket);
 
+      console.log("WebSocket Connected");
+
       socket.once("message", (message) => {
         console.log(message.toString());
         const data = JSON.parse(message.toString());
 
-        if (data.type === "message") {
+        if (data.action === "message") {
           musicController.sendSocketMessage({
             action: "message",
             message: "hello client",
