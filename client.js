@@ -49,18 +49,6 @@ class MyClient extends EventEmitter {
     await this.app.register(cors, {
       origin: "*",
     });
-
-    // await this.app.register(fastifyWebsocket, {
-    //   server: this.app.server,
-    //   options: {
-    //     server: this.app.server,
-    //     // port: 443,
-    //   },
-    //   handle: (socket, req) => {
-    //     socket.on("message", (data) => socket.send(data)); // creates an echo server
-    //   },
-    // });
-
     await this.app.register(fastifySocketIo, {
       cors: {
         origin: "*",
@@ -80,15 +68,6 @@ class MyClient extends EventEmitter {
       done();
     });
 
-    // this.app.ready((err) => {
-    //   if (err) throw err;
-    
-    //   this.app.io.on("connect", (socket) => {
-    //     console.info("Socket connected!", socket.id);
-
-    //     this.app.socket = socket;
-    //   } );
-    // });
 
     this.sequelize = sequelize;
 

@@ -14,71 +14,69 @@ const loggedMusicRoutes = (fastify) => {};
 const loggedAdminRoutes = (fastify) => {};
 
 export default (fastify, options, done) => {
-
-  console.log(fastify.io);
-  // console.log(JSON.stringify(fastify.io));
-
+  musicController.setSocket(fastify.io);
+  console.log("Music routes");
   fastify.io.on("connection", (socket) => {
-    console.log("Client connected", socket.id, socket);
-    musicController.setSocket(fastify.io);
+    console.log("Client connected", socket.id);
+
     socket.on("disconnect", () => {
-      console.log("Client disconnected");
+      console.log("Client disconnected", socket.id);
     });
 
-    socket.emit("message", "Hello from server");
+    socket.emit("message", {
+      action: "message",
+      message: "Hello from server",
+    });
 
     socket.on("message", async (message) => {
-      console.log("Message received: " + message);
+      // console.log("Message received: " + message);
 
-      fastify.io.emit("message", "Hello from server");
+      if (!message) {
+        return;
+      }
+
+      const data = await parseStringJSONOrNot(message);
+
+      if (typeof data !== "object") {
+        return;
+      }
+
+      if (data.action === "message") {
+        socket.emit(
+          "message",
+          JSON.stringify({
+            action: "message",
+            message: "hello client",
+          })
+        );
+      } else if (data.action == "queue") {
+        const queue = await musicController.getDownloadQueue();
+
+        socket.emit(
+          "message",
+          JSON.stringify({
+            action: "queue",
+            queue,
+          })
+        );
+      } else if (data.action == "tracks") {
+        const tracks = await musicController.getDownloadedTracks();
+
+        socket.emit(
+          "message",
+          JSON.stringify({
+            action: "tracks",
+            tracks,
+          })
+        );
+      }
     });
-
-    fastify.io.sockets.emit("message", "Hello from server (all)");
-  });
-
-  fastify.io.on("message", (message) => {
-    console.log("Message received: " + message);
-
-    fastify.io.emit("message", "Hello from server");
   });
 
   fastify.route({
     method: "GET",
     url: "/",
     handler: index,
-    // wsHandler: (socket, req) => {
-    //   fastify.socket = socket;
-
-    //   musicController.setSocket(fastify.socket);
-
-    //   console.log("WebSocket Connected");
-
-    //   socket.on("message", async (message) => {
-    //     console.log(message.toString());
-    //     const data = JSON.parse(message.toString());
-
-    //     if (data.action === "message") {
-    //       musicController.sendSocketMessage({
-    //         action: "message",
-    //         message: "hello client",
-    //       });
-    //     } else if (data.action == "queue") {
-    //       const queue = await musicController.getDownloadQueue();
-
-    //       musicController.sendSocketMessage({
-    //         action: "queue",
-    //         queue,
-    //       });
-    //     } else if (data.action == "tracks") {
-    //       const tracks = await musicController.getDownloadedTracks();
-
-    //       musicController.sendSocketMessage({
-    //         action: "tracks",
-    //         tracks,
-    //       });
-    //     }
-    //   });
-    // },
   });
 
   fastify.get("/music/search/:query", {

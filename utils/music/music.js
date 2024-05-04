@@ -71,7 +71,7 @@ export class MusicFunctions {
 
   sendSocketMessage(data) {
     if (this.socket) {
-      this.socket.send(JSON.stringify(data));
+      this.socket.sockets.emit("message", JSON.stringify(data));
     }
   }
 
