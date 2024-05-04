@@ -23,6 +23,4 @@ const User_Like = sequelize.define(
 User_Like.belongsTo(User, { foreignKey: 'user_id' });
 User_Like.belongsTo(Track, { foreignKey: 'track_id' });
 
-
-
 export default User_Like;

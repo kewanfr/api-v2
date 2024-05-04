@@ -12,10 +12,6 @@ import {
 const musicController = new MusicFunctions();
 const lyricsController = new LyricsFunctions();
 
-const loggedMusicRoutes = (fastify) => {};
-
-const loggedAdminRoutes = (fastify) => {};
-
 export default (fastify, options, done) => {
   musicController.setSocket(fastify.io);
   console.log("Music routes");

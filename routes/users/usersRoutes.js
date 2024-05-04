@@ -42,7 +42,5 @@ const loggedRoutes = (fastify) => {
 export default (fastify, options, done) => {
   loggedRoutes(fastify);
 
-  // fastify.register(fastifyAuth).after(() => loggedRoutes(fastify));
-
   done();
 };

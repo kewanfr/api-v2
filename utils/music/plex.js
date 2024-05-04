@@ -93,8 +93,6 @@ class plexFunctions {
       return null;
     }
 
-    // fs.writeFileSync("sessions.json", JSON.stringify(sessions, null, 2));
-
     const thumbUrl = this.plexClient._generateRelativeUrl(session.thumb);
     const plexToken = this.plexClient.authToken;
     let playing = {

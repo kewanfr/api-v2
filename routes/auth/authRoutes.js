@@ -1,4 +1,3 @@
-import fastify from "fastify";
 import {
   authLoginHandler,
   authRegisterHandler,
@@ -43,8 +42,6 @@ export default (fastify, options, done) => {
   });
 
   loggedAuthRoutes(fastify);
-
-  // fastify.register(fastifyAuth).after(() => loggedAuthRoutes(fastify));
 
   done();
 };

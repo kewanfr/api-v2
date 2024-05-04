@@ -1,8 +1,6 @@
 import Sequelize from 'sequelize';
 import sequelize from './database.js';
-import User from './User.js';
-import Track from './Track.js';
-
+import User from "./User.js";
 
 const Download_Queue = sequelize.define(
   "download_queue",

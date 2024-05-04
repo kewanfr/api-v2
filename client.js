@@ -4,7 +4,6 @@ import cors from "@fastify/cors";
 import fastifyStatic from "@fastify/static";
 import fastifyAuth from "@fastify/auth";
 
-// import fastifyWebsocket from "@fastify/websocket";
 import fastifySocketIo from 'fastify-socket.io';
 
 import path from "path";

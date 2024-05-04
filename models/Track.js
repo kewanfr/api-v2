@@ -9,10 +9,6 @@ const Track = sequelize.define("tracks", {
     allowNull: false,
     primaryKey: true,
   },
-  // Can be spotify or youtube
-  // origin: {
-
-  // }
   name: {
     type: Sequelize.STRING,
     allowNull: false,

@@ -44,8 +44,7 @@ export const fetchPage = async (args) => {
     const message = `An error has occured: ${response.status}`;
     throw new Error(message);
   }
-  // return response;
-  // response.
+
   const text = await response.text();
   return text;
 };
@@ -54,7 +53,6 @@ export const cleanVideoTitle = (title, artist) => {
   const regex = new RegExp(`${artist} - `, "g");
   title = title.replace(regex, "");
   // remove (Official Video), (Clip officiel) or [clip officiel] from the title
-  // no matter case
   title = title.replace(/\(.*\)/gi, "").replace(/\[.*\]/gi, "");
   return title;
   // return title.replace(regex, "")
