@@ -40,6 +40,7 @@ export default {
     username: process.env.PLEX_USERNAME,
     password: process.env.PLEX_PASSWORD,
     deviceName: "Plex Music API",
+    distantUrl: process.env.PLEX_DISTANT_URL ?? process.env.PLEX_URL,
   },
 
   QUEUE_STATUS: {
