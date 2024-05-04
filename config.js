@@ -19,7 +19,7 @@ export default {
   },
 
   https: {
-    enabled: process.env.HTTPS_ENABLED ?? false,
+    enabled: process.env.HTTPS_ENABLED === "true",
     key: process.env.HTTPS_KEY_PATH ?? "",
     cert: process.env.HTTPS_CERT_PATH ?? "",
   },

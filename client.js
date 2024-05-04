@@ -27,14 +27,20 @@ const MODELS_DIR = path.join(__dirname, "models");
 class MyClient extends EventEmitter {
   constructor(options = {}) {
     super();
-    this.app = fastify({
-      // logger: true
-      http2: true,
-      https: {
+
+    if (config.https.enabled) {
+      console.log("HTTPS enabled");
+      options.http2 = true;
+      options.https = {
         allowHTTP1: true,
         key: fs.readFileSync(config.https.key),
         cert: fs.readFileSync(config.https.cert),
-      },
+      };
+    }
+
+    this.app = fastify({
+      // logger: true
+      ...options,
     });
 
     this.init(options);
