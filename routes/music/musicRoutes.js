@@ -4,7 +4,10 @@ import config from "../../config.js";
 import { index } from "../index/indexController.js";
 import LyricsFunctions from "../../utils/music/lyrics.js";
 import ytdl from "ytdl-core";
-import { cleanVideoTitle } from "../../utils/functions.js";
+import {
+  cleanVideoTitle,
+  parseStringJSONOrNot,
+} from "../../utils/functions.js";
 
 const musicController = new MusicFunctions();
 const lyricsController = new LyricsFunctions();
@@ -112,6 +115,15 @@ export default (fastify, options, done) => {
       const { artist_id } = req.params;
 
       let response = await musicController.getArtistTracks(artist_id);
+
+      reply.code(200).send(response);
+    },
+  });
+  fastify.get("/music/track/youtube/:youtube_id", {
+    handler: async (req, reply) => {
+      const { youtube_id } = req.params;
+
+      let response = await musicController.getTrackFromYoutubeId(youtube_id);
 
       reply.code(200).send(response);
     },
