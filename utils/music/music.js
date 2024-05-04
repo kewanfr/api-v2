@@ -390,13 +390,20 @@ export class MusicFunctions {
       queue: await this.getDownloadQueue(),
     });
 
-    await fs.renameSync(temp_path, final_path);
+    // await fs.renameSync(temp_path, final_path);
+    await fs.copyFileSync(temp_path, final_path);
+    await fs.unlinkSync(temp_path);
 
     if (fs.existsSync(temp_path.replace(".mp3", ".txt"))) {
-      await fs.renameSync(
+      // await fs.renameSync(
+      //   temp_path.replace(".mp3", ".txt"),
+      //   final_path.replace(".mp3", ".txt")
+      // );
+      await fs.copyFileSync(
         temp_path.replace(".mp3", ".txt"),
         final_path.replace(".mp3", ".txt")
       );
+      await fs.unlinkSync(temp_path.replace(".mp3", ".txt"));
     }
 
     return true;
