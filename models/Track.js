@@ -47,10 +47,6 @@ const Track = sequelize.define("tracks", {
     type: Sequelize.STRING,
     allowNull: true,
   },
-  spotify_url: {
-    type: Sequelize.STRING,
-    allowNull: true,
-  },
 
   user_id: {
     type: Sequelize.INTEGER,

@@ -154,7 +154,6 @@ export const parseTrackResult = async (data, { searchYoutube = false }) => {
       : false,
 
     spotify_id: data.id,
-    spotify_url: data.external_urls.spotify,
     youtube_url: searchYoutube
       ? await getYtLink(
           `${data.name} ${data.artists.map((a) => a.name).join(" ")}`
@@ -180,7 +179,6 @@ export const parseAlbumResult = async (data) => {
     type: data.album_type,
 
     spotify_id: data.id,
-    spotify_url: data.external_urls.spotify,
   };
 };
 
@@ -199,6 +197,5 @@ export const parseArtistResult = async (data) => {
     image_url: data.images[0]?.url,
 
     spotify_id: data.id,
-    spotify_url: data.external_urls.spotify,
   };
 };
