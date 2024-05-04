@@ -93,9 +93,9 @@ class plexFunctions {
       return null;
     }
 
-    const thumbUrl = this.plexClient._generateRelativeUrl(session.thumb);
+    let thumbUrl = this.plexClient._generateRelativeUrl(session.thumb);
 
-    thumbUrl.replace(config.plex.url, config.plex.distantUrl);
+    thumbUrl = thumbUrl.replace(config.plex.url, config.plex.distantUrl);
 
     const plexToken = this.plexClient.authToken;
     let playing = {
