@@ -45,11 +45,11 @@ const Download_Queue = sequelize.define(
       unique: true,
       allowNull: true,
     },
-    spotify_url: {
+    youtube_id: {
       type: Sequelize.STRING,
       allowNull: true,
     },
-    youtube_url: {
+    spotify_url: {
       type: Sequelize.STRING,
       allowNull: true,
     },
