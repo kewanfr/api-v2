@@ -43,11 +43,11 @@ const Track = sequelize.define("tracks", {
     type: Sequelize.STRING,
     allowNull: true,
   },
-  spotify_url: {
+  youtube_id: {
     type: Sequelize.STRING,
     allowNull: true,
   },
-  youtube_url: {
+  spotify_url: {
     type: Sequelize.STRING,
     allowNull: true,
   },
