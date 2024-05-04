@@ -17,6 +17,14 @@ export const getFiles = async (source) => {
     .map((dirent) => dirent.name);
 };
 
+export const parseStringJSONOrNot = (str) => {
+  try {
+    return JSON.parse(str);
+  } catch (e) {
+    return str;
+  }
+};
+
 export const fetchJSON = async (args) => {
   const response = await fetch(args);
 
@@ -50,6 +58,16 @@ export const cleanVideoTitle = (title, artist) => {
   title = title.replace(/\(.*\)/gi, "").replace(/\[.*\]/gi, "");
   return title;
   // return title.replace(regex, "")
+};
+
+export const youtubeUrlToYoutubeId = (youtube_url) => {
+  if (youtube_url.includes("youtube.com/watch")) {
+    console.log(youtube_url, youtube_url.split("v=")[1]);
+    return youtube_url.split("v=")[1];
+  } else if (youtube_url.includes("youtu.be")) {
+    console.log(youtube_url, youtube_url.split(".be/")[1]);
+    return youtube_url.split(".be/")[1];
+  }
 };
 
 export const cleanName = (str) =>

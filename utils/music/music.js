@@ -7,10 +7,12 @@ import Track from "../../models/Track.js";
 import fs from "fs";
 import {
   cleanEmptyDirs,
+  cleanVideoTitle,
   ensureDir,
   parseAlbumResult,
   parseArtistResult,
   parseTrackResult,
+  youtubeUrlToYoutubeId,
 } from "../functions.js";
 import { Spotify } from "spotifydl-core";
 import { Op } from "sequelize";
@@ -18,6 +20,7 @@ import path from "path";
 
 import * as YTMusic from "node-youtube-music";
 import LyricsFunctions from "./lyrics.js";
+import ytdl from "ytdl-core";
 
 export class MusicFunctions {
   constructor() {
@@ -162,10 +165,15 @@ export class MusicFunctions {
     return track_data;
   }
 
-  async deleteTrack(spotify_id) {
+  async deleteTrack(track_id) {
     const track = await Track.findOne({
       where: {
-        spotify_id: spotify_id,
+        [Op.or]: [
+          { spotify_id: track_id },
+          {
+            youtube_id: track_id,
+          },
+        ],
       },
     });
 
@@ -176,32 +184,37 @@ export class MusicFunctions {
       };
     }
 
+    const track_data = track.dataValues;
+
     const track_path = path.join(
       this.FINAL_PATH,
-      track.artists.split(", ")[0],
-      track.album_name,
-      `${track.name} - ${track.artists}.mp3`
+      track_data.artists.split(", ")[0],
+      track_data.album_name,
+      `${track_data.name} - ${track_data.artists}.mp3`
     );
     try {
       if (fs.existsSync(track_path)) await fs.unlinkSync(track_path);
+
+      if (fs.existsSync(track_path.replace(".mp3", ".txt")))
+        await fs.unlinkSync(track_path.replace(".mp3", ".txt"));
 
       await cleanEmptyDirs(this.FINAL_PATH);
 
       await Track.destroy({
         where: {
-          spotify_id: spotify_id,
+          id: track_data.id,
         },
       });
 
       await Download_Queue.destroy({
         where: {
-          spotify_id: track.spotify_id,
+          id: track_data.id,
         },
       });
 
       this.sendSocketMessage({
         action: "song_deleted",
-        song: track,
+        song: track_data,
       });
 
       return {
@@ -237,12 +250,11 @@ export class MusicFunctions {
     const results = await Track.findAll();
 
     return results.map((item) => {
-      delete item.dataValues.id;
+      // delete item.dataValues.id;
       delete item.dataValues.release_date;
       delete item.dataValues.createdAt;
       delete item.dataValues.updatedAt;
       delete item.dataValues.status;
-      delete item.dataValues.spotify_url;
       delete item.dataValues.track_number;
       delete item.dataValues.path;
       delete item.dataValues.user_id;
@@ -283,18 +295,45 @@ export class MusicFunctions {
     return results.dataValues;
   }
 
+  async searchQueueByYoutubeId(youtube_id) {
+    const results = await Download_Queue.findOne({
+      where: {
+        youtube_id: youtube_id,
+      },
+    });
+
+    return results.dataValues;
+  }
+
   async addSongToQueue(track_data, user_id = null) {
     track_data.artists = track_data.artists.join(", ");
 
+    let track_id;
+    if (track_data.spotify_id !== null) {
+      track_id = track_data.spotify_id;
+    } else if (track_data.youtube_id !== null) {
+      track_id = track_data.youtube_id;
+    }
+
     const search_track_queue = await Download_Queue.findOne({
       where: {
-        spotify_id: track_data.spotify_id,
+        [Op.or]: [
+          { spotify_id: track_id },
+          {
+            youtube_id: track_id,
+          },
+        ],
       },
     });
 
     const search_track = await Track.findOne({
       where: {
-        spotify_id: track_data.spotify_id,
+        [Op.or]: [
+          { spotify_id: track_id },
+          {
+            youtube_id: track_id,
+          },
+        ],
       },
     });
 
@@ -335,7 +374,14 @@ export class MusicFunctions {
 
     if (!fs.existsSync(temp_path)) {
       console.error(`File ${file_name} not found in temp path`);
-      return;
+
+      this.sendSocketMessage({
+        action: "song_error",
+        song: track_data,
+        queue: await this.getDownloadQueue(),
+      });
+
+      return false;
     }
 
     this.sendSocketMessage({
@@ -352,6 +398,8 @@ export class MusicFunctions {
         final_path.replace(".mp3", ".txt")
       );
     }
+
+    return true;
   }
 
   async downloadQueue() {
@@ -385,14 +433,13 @@ export class MusicFunctions {
 
     console.log(`Downloading ${track_info.name} - ${track_info.artists}`);
 
-    const filePath = await path.join(
-      this.TEMP_SONGS_PATH,
-      `${track_info.name} - ${track_info.artists}.mp3`
-    );
+    const fileName = `${track_info.name} - ${track_info.artists}.mp3`;
+
+    const tempFilePath = await path.join(this.TEMP_SONGS_PATH, fileName);
 
     const lyrics = await this.lyrics.getAndSaveTxtLyrics(
       `${track_info.name} - ${track_info.artists}`,
-      filePath.replace(".mp3", ".txt")
+      tempFilePath.replace(".mp3", ".txt")
     );
 
     track_info.artists = track_info.artists.split(", ");
@@ -400,17 +447,27 @@ export class MusicFunctions {
     try {
       const result = await this.spotifyDownloader.downloadTrackFromInfo(
         track_info,
-        filePath
+        tempFilePath
       );
+
+      console.log("Download result", result);
 
       if (result.error) {
         throw new Error(`Error while downloading ${track_info.name}`);
       }
 
-      await this.moveSongToFinalPath(
-        `${track_info.name} - ${track_info.artists}.mp3`,
-        track_info
-      );
+      const moveSong = await this.moveSongToFinalPath(fileName, track_info);
+
+      if (!moveSong) {
+        return Download_Queue.update(
+          { status: config.QUEUE_STATUS.ERROR },
+          {
+            where: {
+              id: track_info.id,
+            },
+          }
+        );
+      }
 
       await Download_Queue.update(
         { status: config.QUEUE_STATUS.FINISHED },
@@ -422,9 +479,11 @@ export class MusicFunctions {
       );
 
       track_info.artists = track_info.artists.join(", ");
-
-      track_info.youtube_url = result.youtube_url ?? null;
-
+      if (result.youtube_url) {
+        track_info.youtube_id = await youtubeUrlToYoutubeId(
+          result.youtube_url
+        );
+      }
       await Track.create({
         ...track_info,
         path: await path.join(
@@ -463,10 +522,23 @@ export class MusicFunctions {
     this.downloadQueue();
   }
 
-  async getTrackFromYoutubeUrl(youtube_url) {
-    const track_data = await this.spotifyDownloader.getTrackFromYoutubeUrl(
-      youtube_url
-    );
+  async getTrackFromYoutubeId(youtube_id) {
+    let repYt = await ytdl.getBasicInfo(youtube_id);
+
+    let details = repYt.videoDetails;
+    let title = cleanVideoTitle(details.title, details.author.name);
+    let track_data = {
+      source: "youtube",
+      name: title,
+      artists: [details.author.name],
+      album_name: title,
+      release_date: details.uploadDate.split("T")[0],
+      cover_url: details.thumbnails[details.thumbnails.length - 1].url,
+      track_number: 1,
+      youtube_id,
+      youtube_url: `https://www.youtube.com/watch?v=${youtube_id}`,
+      spotify_id: null,
+    };
 
     return track_data;
   }
