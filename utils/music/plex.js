@@ -117,6 +117,9 @@ class plexFunctions {
   }
 
   async scanMusicLibrary() {
+
+    console.log("Scanning music library");
+
     let sections = await this.plexClient.query("/library/sections");
     let musicSection = sections.MediaContainer.Directory.find(
       (section) => section.title === LYBRARY_SECTION_TITLE

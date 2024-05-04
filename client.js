@@ -99,7 +99,9 @@ class MyClient extends EventEmitter {
           reject(err);
         } else {
           console.log(
-            `Server listening on http://${config.server.host}:${config.server.port}`
+            `Server listening on ${
+              config.https.enabled ? "https" : "http"
+            }://${config.server.host}:${config.server.port}`
           );
           await this.app.ready();
           resolve(address);
