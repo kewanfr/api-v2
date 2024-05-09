@@ -261,7 +261,9 @@ export class MusicFunctions {
       },
     });
 
+    
     const queue = results.map((item) => item.dataValues);
+    console.log("Queue", queue);
     // this.sendSocketMessage({
     //   action: "queue",
     //   queue: queue,
