@@ -35,6 +35,7 @@ export class fileSystem {
     this.UMOUNT_COMMAND = config.fileSystem.umountCmd;
 
     this.NETWORK_HOST = config.fileSystem.NETWORK_HOST;
+    this.NETWORK_DIR = cmdConfig.netdir;
   }
 
   execLocalCommand(COMMAND) {
@@ -107,6 +108,40 @@ export class fileSystem {
         })
         .then((response) => {
           resolve(response);
+        });
+    });
+  }
+
+  async verifyLocalMount() {
+    return new Promise((resolve, reject) => {
+      this.execLocalCommand("df -h")
+        .catch((err) => {
+          console.error(err);
+          resolve(false);
+        })
+        .then((response) => {
+          if (response.includes(this.NETWORK_DIR)) {
+            resolve(true);
+          } else {
+            resolve(false);
+          }
+        });
+    });
+  }
+
+  async verifyServerMount() {
+    return new Promise((resolve, reject) => {
+      this.execSshCommand(this.NETWORK_HOST, "df -h")
+        .catch((err) => {
+          console.error(err);
+          resolve(false);
+        })
+        .then((response) => {
+          if (response.includes(this.NETWORK_DIR)) {
+            resolve(true);
+          } else {
+            resolve(false);
+          }
         });
     });
   }

@@ -371,13 +371,21 @@ export default (fastify, options, done) => {
 
   fastify.get("/music/mount/local", {
     handler: async (req, reply) => {
+      let response = await fileSystemController.verifyLocalMount();
+
+      return reply.code(200).send(response);
+    },
+  });
+
+  fastify.post("/music/mount/local", {
+    handler: async (req, reply) => {
       let response = await fileSystemController.mountLocal();
 
       return reply.code(200).send(response);
     },
   });
 
-  fastify.get("/music/unmount/local", {
+  fastify.delete("/music/mount/local", {
     handler: async (req, reply) => {
       let response = await fileSystemController.unMountLocal();
 
@@ -387,18 +395,27 @@ export default (fastify, options, done) => {
 
   fastify.get("/music/mount/server", {
     handler: async (req, reply) => {
+      let response = await fileSystemController.verifyServerMount();
+
+      return reply.code(200).send(response);
+    },
+  });
+
+  fastify.post("/music/mount/server", {
+    handler: async (req, reply) => {
       let response = await fileSystemController.mountPlexServer();
 
       return reply.code(200).send(response);
     },
   });
 
-  fastify.get("/music/unmount/server", {
+  fastify.delete("/music/mount/server", {
     handler: async (req, reply) => {
       let response = await fileSystemController.unMountPlexServer();
 
       return reply.code(200).send(response);
     },
   });
+
   done();
 };
