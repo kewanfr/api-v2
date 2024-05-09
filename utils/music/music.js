@@ -230,6 +230,30 @@ export class MusicFunctions {
     }
   }
 
+  async clearQueue() {
+    await Download_Queue.destroy({
+      where: {
+        status: config.QUEUE_STATUS.PENDING,
+      },
+    });
+
+    this.sendSocketMessage({
+      action: "queue_cleared",
+      queue: await this.getDownloadQueue(),
+    });
+
+    return {
+      error: false,
+      message: "Queue cleared",
+    };
+  }
+
+  async getAllQueue() {
+    const results = await Download_Queue.findAll();
+
+    return results.map((item) => item.dataValues);
+  }
+
   async getDownloadQueue() {
     const results = await Download_Queue.findAll({
       where: {

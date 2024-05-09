@@ -153,6 +153,22 @@ export default (fastify, options, done) => {
     },
   });
 
+  fastify.get("/music/queue/clear", {
+    handler: async (req, reply) => {
+      let response = await musicController.clearDownloadQueue();
+
+      reply.code(200).send(response);
+    },
+  });
+
+  fastify.get("/music/queue/all", {
+    handler: async (req, reply) => {
+      let response = await musicController.getAllQueue();
+
+      reply.code(200).send(response);
+    },
+  });
+
   fastify.delete("/music/track/:track_id", {
     handler: async (req, reply) => {
       const { track_id } = req.params;
