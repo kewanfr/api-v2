@@ -155,7 +155,7 @@ export default (fastify, options, done) => {
 
   fastify.get("/music/queue/clear", {
     handler: async (req, reply) => {
-      let response = await musicController.clearDownloadQueue();
+      let response = await musicController.clearFinishedQueue();
 
       reply.code(200).send(response);
     },

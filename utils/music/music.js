@@ -230,10 +230,10 @@ export class MusicFunctions {
     }
   }
 
-  async clearQueue() {
+  async clearFinishedQueue() {
     await Download_Queue.destroy({
       where: {
-        status: config.QUEUE_STATUS.PENDING,
+        status: config.QUEUE_STATUS.FINISHED,
       },
     });
 
