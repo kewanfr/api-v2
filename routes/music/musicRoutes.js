@@ -8,9 +8,11 @@ import {
   cleanVideoTitle,
   parseStringJSONOrNot,
 } from "../../utils/functions.js";
+import { fileSystem } from "../../utils/music/fileSystem.js";
 
 const musicController = new MusicFunctions();
 const lyricsController = new LyricsFunctions();
+const fileSystemController = new fileSystem();
 
 export default (fastify, options, done) => {
   musicController.setSocket(fastify.io);
@@ -367,5 +369,36 @@ export default (fastify, options, done) => {
     },
   });
 
+  fastify.get("/music/mount/local", {
+    handler: async (req, reply) => {
+      let response = await fileSystemController.mountLocal();
+
+      return reply.code(200).send(response);
+    },
+  });
+
+  fastify.get("/music/unmount/local", {
+    handler: async (req, reply) => {
+      let response = await fileSystemController.unMountLocal();
+
+      return reply.code(200).send(response);
+    },
+  });
+
+  fastify.get("/music/mount/server", {
+    handler: async (req, reply) => {
+      let response = await fileSystemController.mountPlexServer();
+
+      return reply.code(200).send(response);
+    },
+  });
+
+  fastify.get("/music/unmount/server", {
+    handler: async (req, reply) => {
+      let response = await fileSystemController.unMountPlexServer();
+
+      return reply.code(200).send(response);
+    },
+  });
   done();
 };

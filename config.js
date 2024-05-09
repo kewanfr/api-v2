@@ -43,6 +43,17 @@ export default {
     distantUrl: process.env.PLEX_DISTANT_URL ?? process.env.PLEX_URL,
   },
 
+  fileSystem: {
+    mountCmd: {
+      prefix: "mount -t cifs",
+      netdir: process.env.NETWORK_DIR ?? "//192.168.0.39/Musique",
+      mountdir: process.env.LOCAL_MOUNT_DIR ?? "/mnt/Musique",
+      options: `-o username=${process.env.NETWORK_USERNAME},vers=2.0,password=${process.env.NETWORK_PASSWORD}`,
+    },
+    umountCmd: `umount ${process.env.LOCAL_MOUNT_DIR ?? "/mnt/Musique"}`,
+    NETWORK_HOST: process.env.NETWORK_HOST ?? "192.168.0.40",
+  },
+
   QUEUE_STATUS: {
     PENDING: 0,
     DOWNLOADING: 1,
