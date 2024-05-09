@@ -139,7 +139,7 @@ export const parseTrackResult = async (data, { searchYoutube = false }) => {
     artist: data.artists.map((a) => cleanName(a.name)).join(" / "),
     artists: data.artists.map((a) => cleanName(a.name)),
     artists_ids: data.artists.map((a) => a.id),
-    album_name: data.album?.name,
+    album_name: cleanName(data.album?.name),
     release_date: data.album?.release_date ?? "Unknown",
     cover_url: data.album?.images[0]?.url,
     track_number: data.track_number,

@@ -130,7 +130,7 @@ export class MusicFunctions {
         name: item.title,
         artist: item.artists[0]?.name,
         artists: item.artists?.map((artist) => artist.name),
-        album_name: item.album,
+        album_name: cleanName(item.album),
         youtube_id: item.youtubeId,
         cover_url: item.thumbnailUrl?.split("=")[0] ?? item.thumbnailUrl,
         duration_ms: item.duration.totalSeconds * 1000,
