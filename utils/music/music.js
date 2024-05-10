@@ -263,7 +263,6 @@ export class MusicFunctions {
 
     
     const queue = results.map((item) => item.dataValues);
-    console.log("Queue", queue);
     // this.sendSocketMessage({
     //   action: "queue",
     //   queue: queue,
@@ -486,6 +485,7 @@ export class MusicFunctions {
       console.log("Download result", result);
 
       if (result.error) {
+        console.error(`Error while downloading ${track_info.name}`);
         throw new Error(`Error while downloading ${track_info.name}`);
       }
 
@@ -502,14 +502,11 @@ export class MusicFunctions {
         );
       }
 
-      await Download_Queue.update(
-        { status: config.QUEUE_STATUS.FINISHED },
-        {
-          where: {
-            id: track_info.id,
-          },
-        }
-      );
+      await Download_Queue.destroy({
+        where: {
+          id: track_info.id,
+        },
+      });
 
       track_info.artists = track_info.artists.join(", ");
       if (result.youtube_url) {
