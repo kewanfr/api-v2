@@ -64,6 +64,7 @@ export class MusicFunctions {
     this.lyrics = new LyricsFunctions();
   }
 
+  /* ----- Socket Functions ----- */
   setSocket(socket) {
     this.socket = socket;
   }
@@ -77,7 +78,9 @@ export class MusicFunctions {
       this.socket.sockets.emit("message", JSON.stringify(data));
     }
   }
+  /* ----- Socket Functions ----- */
 
+  /* ----- Search and Parse Functions ----- */
   async search(query, type = "track", limit = 20) {
     type = type.replace(/ /g, "");
     // Search for a song on Spotify and return clean results
@@ -165,6 +168,29 @@ export class MusicFunctions {
     return track_data;
   }
 
+  async getTrackFromYoutubeId(youtube_id) {
+    let repYt = await ytdl.getBasicInfo(youtube_id);
+
+    let details = repYt.videoDetails;
+    let title = cleanVideoTitle(details.title, details.author.name);
+    let track_data = {
+      source: "youtube",
+      name: title,
+      artists: [details.author.name],
+      album_name: title,
+      release_date: details.uploadDate.split("T")[0],
+      cover_url: details.thumbnails[details.thumbnails.length - 1].url,
+      track_number: 1,
+      youtube_id,
+      youtube_url: `https://www.youtube.com/watch?v=${youtube_id}`,
+      spotify_id: null,
+    };
+
+    return track_data;
+  }
+  /* ----- Search and Parse Functions ----- */
+
+  /* ----- Tracks ACTIONS ----- */
   async deleteTrack(track_id) {
     const track = await Track.findOne({
       where: {
@@ -202,13 +228,27 @@ export class MusicFunctions {
 
       await Track.destroy({
         where: {
-          id: track_data.id,
+          [Op.or]: [
+            {
+              spotify_id: track_data.spotify_id
+            },
+            {
+              youtube_id: track_data.youtube_id
+            }
+          ]
         },
       });
 
       await Download_Queue.destroy({
         where: {
-          id: track_data.id,
+          [Op.or]: [
+            {
+              spotify_id: track_data.spotify_id
+            },
+            {
+              youtube_id: track_data.youtube_id
+            }
+          ]
         },
       });
 
@@ -228,6 +268,173 @@ export class MusicFunctions {
         message: "An error occurred",
       };
     }
+  }
+
+  async moveSongToFinalPath(file_name, track_data) {
+    const folder_name = path.join(
+      track_data.artists[0],
+      track_data.album_name
+    );
+
+    const final_path = path.join(this.FINAL_PATH, folder_name, file_name);
+
+    await ensureDir(path.join(this.FINAL_PATH, folder_name));
+
+    if (!fs.existsSync(temp_path)) {
+      console.error(`File ${file_name} not found in temp path`);
+
+      this.sendSocketMessage({
+        action: "song_error",
+        song: track_data,
+        queue: await this.getDownloadQueue(),
+      });
+
+      return false;
+    }
+
+    this.sendSocketMessage({
+      action: "song_downloaded",
+      song: track_data,
+      queue: await this.getDownloadQueue(),
+    });
+
+    // await fs.renameSync(temp_path, final_path);
+    await fs.copyFileSync(temp_path, final_path);
+    await fs.unlinkSync(temp_path);
+
+    if (fs.existsSync(temp_path.replace(".mp3", ".txt"))) {
+      // await fs.renameSync(
+      //   temp_path.replace(".mp3", ".txt"),
+      //   final_path.replace(".mp3", ".txt")
+      // );
+      await fs.copyFileSync(
+        temp_path.replace(".mp3", ".txt"),
+        final_path.replace(".mp3", ".txt")
+      );
+      await fs.unlinkSync(temp_path.replace(".mp3", ".txt"));
+    }
+
+    return true;
+  }
+  /* ----- Tracks ACTIONS ----- */
+
+  /* ----- Queue ACTIONS ----- */
+  async downloadQueue() {
+    if (this.IS_QUEUE_DOWNLOADING) return;
+
+    const download_queue = await this.getDownloadQueue();
+
+    if (download_queue.length === 0) {
+      console.log("Queue is empty");
+      return;
+    }
+
+    this.IS_QUEUE_DOWNLOADING = true;
+
+    const track_info = download_queue[0];
+
+    await Download_Queue.update(
+      { status: config.QUEUE_STATUS.DOWNLOADING },
+      {
+        where: {
+          id: track_info.id,
+        },
+      }
+    );
+
+    this.sendSocketMessage({
+      action: "song_downloading",
+      song: track_info,
+      queue: await this.getDownloadQueue(),
+    });
+
+    console.log(`Downloading ${track_info.name} - ${track_info.artists}`);
+
+    const fileName = `${track_info.name} - ${track_info.artists}.mp3`;
+
+    const tempFilePath = await path.join(this.TEMP_SONGS_PATH, fileName);
+
+    const lyrics = await this.lyrics.getAndSaveTxtLyrics(
+      `${track_info.name} - ${track_info.artists}`,
+      tempFilePath.replace(".mp3", ".txt")
+    );
+
+    track_info.artists = track_info.artists.split(", ");
+
+    try {
+      const result = await this.spotifyDownloader.downloadTrackFromInfo(
+        track_info,
+        tempFilePath
+      );
+
+      console.log("Download result", result);
+
+      if (result.error) {
+        console.error(`Error while downloading ${track_info.name}`);
+        throw new Error(`Error while downloading ${track_info.name}`);
+      }
+
+      const moveSong = await this.moveSongToFinalPath(fileName, track_info);
+
+      if (!moveSong) {
+        return Download_Queue.update(
+          { status: config.QUEUE_STATUS.ERROR },
+          {
+            where: {
+              id: track_info.id,
+            },
+          }
+        );
+      }
+
+      await Download_Queue.destroy({
+        where: {
+          id: track_info.id,
+        },
+      });
+
+      track_info.artists = track_info.artists.join(", ");
+      if (result.youtube_url) {
+        track_info.youtube_id = await youtubeUrlToYoutubeId(
+          result.youtube_url
+        );
+      }
+      await Track.create({
+        ...track_info,
+        path: await path.join(
+          this.FINAL_PATH,
+          track_info.artists.split(", ")[0],
+          track_info.album_name,
+          `${track_info.name} - ${track_info.artists}.mp3`
+        ),
+      });
+
+      console.log(`Sucessfully downloaded ${track_info.name}\n`);
+    } catch (error) {
+      console.error(
+        `Error while downloading ${
+          track_info.name
+        } - ${track_info.artists.join(", ")}`,
+        error
+      );
+
+      await Download_Queue.update(
+        { status: config.QUEUE_STATUS.ERROR },
+        {
+          where: {
+            id: track_info.id,
+          },
+        }
+      );
+
+      return {
+        error: true,
+        track: track_info.name + " - " + track_info.artist,
+      };
+    }
+
+    this.IS_QUEUE_DOWNLOADING = false;
+    this.downloadQueue();
   }
 
   async clearFinishedQueue() {
@@ -261,7 +468,6 @@ export class MusicFunctions {
       },
     });
 
-    
     const queue = results.map((item) => item.dataValues);
     // this.sendSocketMessage({
     //   action: "queue",
@@ -385,194 +591,9 @@ export class MusicFunctions {
     this.downloadQueue();
     return config.QUEUE_STATUS.PENDING;
   }
+  /* ----- Queue ACTIONS ----- */
 
-  async moveSongToFinalPath(file_name, track_data) {
-    const folder_name = path.join(
-      track_data.artists[0],
-      track_data.album_name
-    );
-
-    const final_path = path.join(this.FINAL_PATH, folder_name, file_name);
-    const temp_path = path.join(this.TEMP_SONGS_PATH, file_name);
-
-    await ensureDir(path.join(this.FINAL_PATH, folder_name));
-
-    if (!fs.existsSync(temp_path)) {
-      console.error(`File ${file_name} not found in temp path`);
-
-      this.sendSocketMessage({
-        action: "song_error",
-        song: track_data,
-        queue: await this.getDownloadQueue(),
-      });
-
-      return false;
-    }
-
-    this.sendSocketMessage({
-      action: "song_downloaded",
-      song: track_data,
-      queue: await this.getDownloadQueue(),
-    });
-
-    // await fs.renameSync(temp_path, final_path);
-    await fs.copyFileSync(temp_path, final_path);
-    await fs.unlinkSync(temp_path);
-
-    if (fs.existsSync(temp_path.replace(".mp3", ".txt"))) {
-      // await fs.renameSync(
-      //   temp_path.replace(".mp3", ".txt"),
-      //   final_path.replace(".mp3", ".txt")
-      // );
-      await fs.copyFileSync(
-        temp_path.replace(".mp3", ".txt"),
-        final_path.replace(".mp3", ".txt")
-      );
-      await fs.unlinkSync(temp_path.replace(".mp3", ".txt"));
-    }
-
-    return true;
-  }
-
-  async downloadQueue() {
-    if (this.IS_QUEUE_DOWNLOADING) return;
-
-    const download_queue = await this.getDownloadQueue();
-
-    if (download_queue.length === 0) {
-      console.log("Queue is empty");
-      return;
-    }
-
-    this.IS_QUEUE_DOWNLOADING = true;
-
-    const track_info = download_queue[0];
-
-    await Download_Queue.update(
-      { status: config.QUEUE_STATUS.DOWNLOADING },
-      {
-        where: {
-          id: track_info.id,
-        },
-      }
-    );
-
-    this.sendSocketMessage({
-      action: "song_downloading",
-      song: track_info,
-      queue: await this.getDownloadQueue(),
-    });
-
-    console.log(`Downloading ${track_info.name} - ${track_info.artists}`);
-
-    const fileName = `${track_info.name} - ${track_info.artists}.mp3`;
-
-    const tempFilePath = await path.join(this.TEMP_SONGS_PATH, fileName);
-
-    const lyrics = await this.lyrics.getAndSaveTxtLyrics(
-      `${track_info.name} - ${track_info.artists}`,
-      tempFilePath.replace(".mp3", ".txt")
-    );
-
-    track_info.artists = track_info.artists.split(", ");
-
-    try {
-      const result = await this.spotifyDownloader.downloadTrackFromInfo(
-        track_info,
-        tempFilePath
-      );
-
-      console.log("Download result", result);
-
-      if (result.error) {
-        console.error(`Error while downloading ${track_info.name}`);
-        throw new Error(`Error while downloading ${track_info.name}`);
-      }
-
-      const moveSong = await this.moveSongToFinalPath(fileName, track_info);
-
-      if (!moveSong) {
-        return Download_Queue.update(
-          { status: config.QUEUE_STATUS.ERROR },
-          {
-            where: {
-              id: track_info.id,
-            },
-          }
-        );
-      }
-
-      await Download_Queue.destroy({
-        where: {
-          id: track_info.id,
-        },
-      });
-
-      track_info.artists = track_info.artists.join(", ");
-      if (result.youtube_url) {
-        track_info.youtube_id = await youtubeUrlToYoutubeId(
-          result.youtube_url
-        );
-      }
-      await Track.create({
-        ...track_info,
-        path: await path.join(
-          this.FINAL_PATH,
-          track_info.artists.split(", ")[0],
-          track_info.album_name,
-          `${track_info.name} - ${track_info.artists}.mp3`
-        ),
-      });
-
-      console.log(`Sucessfully downloaded ${track_info.name}\n`);
-    } catch (error) {
-      console.error(
-        `Error while downloading ${
-          track_info.name
-        } - ${track_info.artists.join(", ")}`,
-        error
-      );
-
-      await Download_Queue.update(
-        { status: config.QUEUE_STATUS.ERROR },
-        {
-          where: {
-            id: track_info.id,
-          },
-        }
-      );
-
-      return {
-        error: true,
-        track: track_info.name + " - " + track_info.artist,
-      };
-    }
-
-    this.IS_QUEUE_DOWNLOADING = false;
-    this.downloadQueue();
-  }
-
-  async getTrackFromYoutubeId(youtube_id) {
-    let repYt = await ytdl.getBasicInfo(youtube_id);
-
-    let details = repYt.videoDetails;
-    let title = cleanVideoTitle(details.title, details.author.name);
-    let track_data = {
-      source: "youtube",
-      name: title,
-      artists: [details.author.name],
-      album_name: title,
-      release_date: details.uploadDate.split("T")[0],
-      cover_url: details.thumbnails[details.thumbnails.length - 1].url,
-      track_number: 1,
-      youtube_id,
-      youtube_url: `https://www.youtube.com/watch?v=${youtube_id}`,
-      spotify_id: null,
-    };
-
-    return track_data;
-  }
-
+  /* ----- Download ACTIONS ----- */
   async downloadFromDatas(track_data, user_id = null) {
     return await this.addSongToQueue(track_data, user_id);
   }
@@ -581,5 +602,199 @@ export class MusicFunctions {
     let track_data = await this.spotifyDownloader.getTrack(spotify_id);
 
     return await this.addSongToQueue(track_data, user_id);
+  }
+  /* ----- Download ACTIONS ----- */
+
+  /* ----- Update ACTIONS ----- */
+
+  async reDownloadTrack(track_data) {
+    const track = await Track.findOne({
+      where: {
+        [Op.or]: [
+          { spotify_id: track_data.spotify_id },
+          {
+            youtube_id: track_data.youtube_id,
+          },
+        ],
+      },
+    });
+
+    if (!track) {
+      return {
+        error: true,
+        message: "Track not found",
+      };
+    }
+
+    const track_data = track.dataValues;
+
+    const track_path = path.join(
+      this.FINAL_PATH,
+      track_data.artists.split(", ")[0],
+      track_data.album_name,
+      `${track_data.name} - ${track_data.artists}.mp3`
+    );
+    try {
+      if (fs.existsSync(track_path)) await fs.unlinkSync(track_path);
+
+      if (fs.existsSync(track_path.replace(".mp3", ".txt")))
+        await fs.unlinkSync(track_path.replace(".mp3", ".txt"));
+
+      await cleanEmptyDirs(this.FINAL_PATH);
+
+      await Track.destroy({
+        where: {
+          [Op.or]: [
+            {
+              spotify_id: track_data.spotify_id,
+            },
+            {
+              youtube_id: track_data.youtube_id,
+            },
+          ],
+        },
+      });
+
+      await Download_Queue.destroy({
+        where: {
+          [Op.or]: [
+            {
+              spotify_id: track_data.spotify_id,
+            },
+            {
+              youtube_id: track_data.youtube_id,
+            },
+          ],
+        },
+      });
+
+      this.sendSocketMessage({
+        action: "song_deleted",
+        song: track_data,
+      });
+
+      return {
+        error: false,
+        message: "Track deleted",
+      };
+    } catch (error) {
+      console.error("Error while deleting track", error);
+      return {
+        error: true,
+        message: "An error occurred",
+      };
+    }
+  }
+
+  /**
+   *
+   * @param track_data contains "spotify/youtube_id", "name", "artists", "album_name", "name"
+   */
+  async renameTrack(new_track_data) {
+    const old_track = await Track.findOne({
+      where: {
+        [Op.or]: [
+          {
+            spotify_id: new_track_data.spotify_id,
+          },
+          {
+            youtube_id: new_track_data.youtube_id,
+          },
+        ],
+      },
+    });
+
+    if (!old_track) {
+      return {
+        error: true,
+        message: "Track not found",
+      };
+    }
+
+    const old_track_data = old_track.dataValues;
+
+    const old_artists =
+      old_track_data.artists.split(", ") ?? old_track_data.artists;
+    const artists =
+      new_track_data.artists.split(", ") ?? new_track_data.artists;
+
+    const folder_name = path.join(
+      old_artists[0],
+      old_track_data.album_name,
+      old_track_data.name
+    );
+    const new_folder_name = path.join(
+      artists[0],
+      new_track_data.album_name,
+      new_track_data.name
+    );
+
+    const old_file_path = path.join(this.FINAL_PATH, folder_name, ".mp3");
+    const new_file_path = path.join(this.FINAL_PATH, new_folder_name, ".mp3");
+
+    if (old_file_path == new_file_path) {
+      return {
+        error: true,
+        message: "Track already renamed",
+      };
+    }
+
+    if (fs.existsSync(new_file_path)) {
+      return {
+        error: true,
+        message: "Track already exists",
+      };
+    }
+
+    if (!fs.existsSync(old_file_path)) {
+      return {
+        error: true,
+        message: "Track not found",
+      };
+    }
+
+    await ensureDir(path.join(this.FINAL_PATH, new_folder_name));
+
+    try {
+      await fs.renameSync(old_file_path, new_file_path);
+
+      if (fs.existsSync(old_file_path.replace(".mp3", ".txt"))) {
+        await fs.renameSync(
+          old_file_path.replace(".mp3", ".txt"),
+          new_file_path.replace(".mp3", ".txt")
+        );
+      }
+
+      await Track.update(
+        {
+          name: new_track_data.name,
+          artists: new_track_data.artists,
+          album_name: new_track_data.album_name,
+        },
+        {
+          where: {
+            [Op.or]: [
+              {
+                spotify_id: old_track_data.spotify_id,
+              },
+              {
+                youtube_id: old_track_data.youtube_id,
+              },
+            ],
+          },
+        }
+      );
+
+      return {
+        error: false,
+        message: "Track renamed",
+      };
+    } catch (error) {
+      console.error("Error while renaming track", error);
+      return {
+        error: true,
+        message: "An error occurred" + error,
+      };
+    }
   }
 }
