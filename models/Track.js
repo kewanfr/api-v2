@@ -14,7 +14,7 @@ const Track = sequelize.define("tracks", {
     allowNull: false,
   },
   artists: {
-    type: Sequelize.STRING, // Array of strings
+    type: Sequelize.STRING, // List of artists, separated by ","
     allowNull: true,
   },
   album_name: {
