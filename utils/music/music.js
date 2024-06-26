@@ -21,6 +21,7 @@ import path from "path";
 import * as YTMusic from "node-youtube-music";
 import LyricsFunctions from "./lyrics.js";
 import ytdl from "ytdl-core";
+import LyricsDatabase from "./lyricsDb.js";
 
 export class MusicFunctions {
   constructor() {
@@ -62,6 +63,9 @@ export class MusicFunctions {
     this.socket = null;
 
     this.lyrics = new LyricsFunctions();
+
+    this.lyricsDB = new LyricsDatabase();
+    this.lyricsDB.indexLyricsFiles();
   }
 
   /* ----- Socket Functions ----- */
@@ -230,12 +234,12 @@ export class MusicFunctions {
         where: {
           [Op.or]: [
             {
-              spotify_id: track_data.spotify_id
+              spotify_id: track_data.spotify_id,
             },
             {
-              youtube_id: track_data.youtube_id
-            }
-          ]
+              youtube_id: track_data.youtube_id,
+            },
+          ],
         },
       });
 
@@ -243,12 +247,12 @@ export class MusicFunctions {
         where: {
           [Op.or]: [
             {
-              spotify_id: track_data.spotify_id
+              spotify_id: track_data.spotify_id,
             },
             {
-              youtube_id: track_data.youtube_id
-            }
-          ]
+              youtube_id: track_data.youtube_id,
+            },
+          ],
         },
       });
 
@@ -277,7 +281,7 @@ export class MusicFunctions {
     );
 
     const final_path = path.join(this.FINAL_PATH, folder_name, file_name);
-
+    const temp_path = path.join(this.TEMP_SONGS_PATH, file_name);
     await ensureDir(path.join(this.FINAL_PATH, folder_name));
 
     if (!fs.existsSync(temp_path)) {
@@ -626,7 +630,7 @@ export class MusicFunctions {
       };
     }
 
-    const track_data = track.dataValues;
+    track_data = track.dataValues;
 
     const track_path = path.join(
       this.FINAL_PATH,
