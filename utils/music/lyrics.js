@@ -2,6 +2,9 @@ import { JSDOM } from "jsdom";
 import fs from "fs";
 import LyricsGeniusFunctions from "./lyricsGenius.js";
 import { fetchJSON, fetchPage } from "../functions.js";
+import config from "../../config.js";
+import Lyrics from "../../models/Lyrics.js";
+import path from "path";
 
 function findLyricsCommentNode(dom) {
   const iterator = dom.window.document.createNodeIterator(
@@ -62,6 +65,57 @@ class LyricsFunctions {
       return "No lyrics found.";
     }
     return "No lyrics found.";
+  }
+
+  async getLyricsAndDB(query) {
+    let items = await this.search(query);
+
+    if (items.length === 0) {
+      let geniusLyrics = await this.lyricsGenius.getLyrics(query);
+
+      if (geniusLyrics !== "No lyrics found.") {
+        return geniusLyrics;
+      }
+      return "No lyrics found.";
+    }
+
+    const item = items[0];
+
+    const itemName = item.autocomplete
+      .replaceAll('" ', "")
+      .replaceAll('"', "");
+    const songName = itemName.split(" - ")[0];
+    const artistsName = itemName.split(" - ")[1];
+
+    const fileName = `${songName} - ${artistsName}.txt`;
+    const lyricsPath = path.join(config.music.paths.final, "lyrics");
+    if (!fs.existsSync(lyricsPath)) {
+      fs.mkdirSync(lyricsPath);
+    }
+    const filePath = path.join(lyricsPath, fileName);
+
+    let lyrics = await this.getLyricsFromURL(items[0].url);
+
+    if (lyrics !== "No lyrics found.") {
+      fs.writeFileSync(filePath, lyrics);
+      await Lyrics.findOrCreate({
+        where: {
+          name: songName,
+          artists: artistsName,
+          album_name: "lyrics",
+        },
+        defaults: {
+          name: songName,
+          artists: artistsName,
+          album_name: "lyrics",
+          path: path.join("lyrics", fileName),
+        },
+      });
+
+      return lyrics;
+    }
+
+    return lyrics;
   }
 
   async getLyrics(query) {
