@@ -45,27 +45,25 @@ export default (fastify, options, done) => {
 
       let results = await lyricsDB.search(query);
 
+
       if (results.length === 0) {
         const lyrics = await lyricsController.getLyricsAndDB(query);
 
-        return reply.code(200).send(lyrics);
+        return reply.code(200).send({
+          lyrics: lyrics,
+          item: null,
+        });
       }
 
       const item = results[0];
       let lyrics = await lyricsDB.getLyrics(item.id);
 
-      return reply.code(200).send(lyrics);
 
-      // if (results.length === 0) {
-      // const path = path.join(config.music.paths.final, query);
-      // let geniusLyrics = await lyricsController.lyricsGenius.getLyrics(query);
-      // if (geniusLyrics !== "No lyrics found.") {
-      //   return geniusLyrics;
-      // }
-      //   return "No lyrics found.";
-      // }
+      return reply.code(200).send({
+        lyrics: lyrics,
+        item: item,
+      });
 
-      // reply.code(200).send(items);
     },
   });
 
@@ -73,9 +71,12 @@ export default (fastify, options, done) => {
     handler: async (req, reply) => {
       const { id } = req.params;
 
-      let items = await lyricsDB.getLyrics(parseInt(id));
+      let lyrics = await lyricsDB.getLyrics(parseInt(id));
 
-      reply.code(200).send(items);
+      reply.code(200).send({
+        id: id,
+        lyrics: lyrics,
+      });
     },
   });
 
