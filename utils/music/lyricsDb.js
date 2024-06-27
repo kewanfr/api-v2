@@ -50,9 +50,19 @@ class LyricsDatabase {
 
         for (let song of songs) {
           if (song.name.endsWith(".txt")) {
-            const songName = song.name.split(".")[0].split(" - ")[0];
-            const artistsName = song.name.split(".")[0].split(" - ")[1];
+            const songName = song.name
+              .replaceAll("...", "")
+              .replaceAll("..", "")
+              .split(".txt")[0]
+              .split(" - ")[0];
+            const artistsName = song.name
+              .replaceAll("...", "")
+              .replaceAll("..", "")
+              .split(".txt")[0]
+              .split(" - ")[1];
             const albumName = album;
+
+            // console.log(songName, artistsName, albumName);
 
             await Lyrics.findOrCreate({
               where: {
@@ -93,28 +103,26 @@ class LyricsDatabase {
   }
 
   async search(query) {
-    return await Lyrics.findAll({
+
+    const allLyrics = await Lyrics.findAll({
       attributes: ["id", "name", "artists", "path"],
-      where: {
-        [Op.or]: [
-          {
-            name: {
-              [Op.like]: `%${query}%`,
-            },
-          },
-          {
-            artists: {
-              [Op.like]: `%${query}%`,
-            },
-          },
-          {
-            album_name: {
-              [Op.like]: `%${query}%`,
-            },
-          },
-        ],
-      },
     });
+
+    const queryWords = query.replace(" - ", "  ").split(" ");
+
+    const results = allLyrics.filter((lyrics) => {
+      const name = lyrics.name.toLowerCase();
+      const artists = lyrics.artists.toLowerCase();
+
+      return queryWords.every(
+        (word) =>
+          name.includes(word.toLowerCase()) ||
+          artists.includes(word.toLowerCase())
+      );
+    });
+
+    return results;
+
   }
 }
 
